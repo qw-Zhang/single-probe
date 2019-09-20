@@ -139,9 +139,9 @@ stem(la,rr_std);
 axis([-0.5 1.5 0.05 1.05 ]);
 legend('Synthesized data with correct','Model standard');
 %%
-
+[start_value,start_index] = max(res_cor_com(1,:));
 for i = 1:6
-    res_new(i,:) = res_cor_com(i,200001-50:200001+50);
+    res_new(i,:) = res_cor_com(i,start_index-50:start_index+50);
     
     res_new_interp(i,:) = resample(abs(res_new(i,:)),10000,3072);
     res_new_interp_1(i,:) = resample(abs(res_new_interp(i,:)),10,1);
@@ -152,7 +152,7 @@ for i = 1:6
     res_new_interp(i,:) = abs(res_new_interp(i,:))./normal;
     
     la_interp = linspace((1-165)/100,(329-165)/100,329);
-    la_interp_1 = linspace((1-1629)/1e9,(4240-1629)/1e9,4240);
+%     la_interp_1 = linspace((1-1629)/1e9,(4240-1629)/1e9,4240);
     
     
     %     plot(la_interp, abs(res_new_interp(i,:)));
@@ -162,7 +162,7 @@ end
 
 %%
 figure;
-res_new(7,:) = res_cor_com(7,200001-50:200001+50);
+res_new(7,:) = res_cor_com(7,start_index-50:start_index+50);
 res_new_interp(7,:) = resample(abs(res_new(7,:)),10000,3072);
 res_new_interp(7,:) = res_new_interp(7,:)./max(res_new_interp(7,:));
 res_new_interp_1(7,:) = resample(abs(res_new_interp(7,:)),10,1);
