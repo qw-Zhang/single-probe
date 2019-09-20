@@ -35,8 +35,6 @@ new_data_chirp = zeros(6,length(eval(var_name(1,:))));
 len = length(new_data_chirp);
 rate = 50; %the interpolation rate
 
-s_ex = zeros(6,2763800);
-
 for m = 1:6
 %      k = -rate/2;
     k = 1;
@@ -93,6 +91,7 @@ value_max = rr(2,:);
 new_data = zeros(7,length(s_ex));
 r = zeros(7,2*length(eval(var_name(1,:)))-1);
 com_tx = Txdata(1,:) + 1i*Txdata(2,:);
+
 
 figure;
 for i = 1:6
