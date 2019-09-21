@@ -4,75 +4,75 @@ clear;
 %loading data
 clear name var_name;
 Txdata = load('D:\study\OTA\expriment_iecas\DATA\DATA0730\Tx_data\Txdata.dat');
-temp_ch_pow = '-10';
+temp_ch_pow = '10';
 angle_map = [1 -13 146 -30 -11 -1];
 % dir_dic = 'D:\study\OTA\expriment_iecas\DATA\DATA0810\multi_tripod';
 % dir_dic = 'D:\study\OTA\expriment_iecas\DATA\DATA0810\tripod';
-dir_dic = 'D:\study\OTA\expriment_iecas\DATA\DATA0811\2D_turn';
+% dir_dic = 'D:\study\OTA\expriment_iecas\DATA\DATA0811\2D_turn';
 % dir_dic = 'D:\study\OTA\expriment_iecas\DATA\DATA0811\3D_tripod';
 % dir_dic = 'D:\study\OTA\expriment_iecas\DATA\DATA0811\3D_turn';
-% dir_dic = 'D:\study\OTA\expriment_iecas\DATA\DATA0824\3D_1';
+dir_dic = 'D:\study\OTA\expriment_iecas\DATA\DATA0824\3D_1';
 
 
 for i = 1:6
     temp_ch = num2str(i);
-    name(i,:) = [dir_dic,'\data',temp_ch,'_chirp',temp_ch_pow,'dbm','.dat'];
-%     name(i,:) = [dir_dic,'\data',temp_ch,'_c',temp_ch_pow,'dbm','.dat'];
-    var_name(i,:) = ['data',temp_ch,'_chirp_10dbm'];
-%     var_name(i,:) = ['data',temp_ch,'_c10dbm'];
+%     name(i,:) = [dir_dic,'\data',temp_ch,'_chirp',temp_ch_pow,'dbm','.dat'];
+    name(i,:) = [dir_dic,'\data',temp_ch,'_c',temp_ch_pow,'dbm','.dat'];
+%     var_name(i,:) = ['data',temp_ch,'_chirp_10dbm'];
+    var_name(i,:) = ['data',temp_ch,'_c10dbm'];
     load(name(i,:));
 end
 
 f0 = 10;f1 = 2000;
-t = linspace(1,10000,10000);
+t = linspace(0,9999,10000);
 chirp = sin(2 * pi*(f0*t / 10000 + (f1 / 2)*power(t / 10000, 2)));
 
 %%
 %using interpolation 
 R = 1;
-antenna = 2;correct = 1;
+antenna = 1;correct = 1;
 new_data_chirp = zeros(6,length(eval(var_name(1,:))));
 len = length(new_data_chirp);
-rate = 50; %the interpolation rate
+rate = 10; %the interpolation rate
 
-s_ex = zeros(6,2763800);
+s_ex = zeros(6,2764800);
 
-for m = 1:6
+for m = 1:1
 %      k = -rate/2;
-    k = 1;
+%     k = 1;
     temp = eval(var_name(m,:));
     if antenna == 1
         new_data_chirp(m,:) =(temp(1,:) + 1i*temp(2,:));
     else
         new_data_chirp(m,:) =(temp(3,:) + 1i*temp(4,:));
     end
-%     s_interp = resample(new_data_chirp(m,:),rate,1);
-    s_interp = interp(new_data_chirp(m,:),rate);
+    s_interp = resample(new_data_chirp(m,:),rate,1);
+%     s_interp = interp1(new_data_chirp(m,:),rate);
     s_interp_l = length(s_interp)/rate;
     
     for n = 1:rate
-        k = k + 1;
         j = 1;
-        for i = 1:s_interp_l-1000
-            s_ex(m,j) = s_interp(1000+rate*(i-1)+k);
+        for i = 1:s_interp_l
+            s_ex(m,j) = s_interp(rate*(i-1)+n);
             j = j + 1;
         end
         [a,b] = xcorr(s_ex(m,:),chirp);
-        [p(2,n),p(1,n)] = max(abs(a(1:3/2*len)));
+        [p(2,n),p(1,n)] = max(abs(a(100000:3/2*len)));
         
 %         p(1,n) = p(1,n) - length(s_ex);
         p(1,n) = b(p(1,n));
         %     figure;plot(b,a);    
         if p(1,n) < floor(100000*R)
-            p(1,n) = p(1,n) + 1230800;
-            p(2,n) = abs(a(p(1,n)+2764800));
+            p(1,n) = p(1,n) + 1229800; 
+            p(2,n) = abs(a(p(1,n)+2763800));
         end
+%         k = k + 1;
     end
     
     [value_index,index] = max(p(2,:));
     i = 1;
     temp_max = p(2,1);index_max = p(1,1);
-    while p(1,1) == p(1,i)
+    while (i <= rate) && (p(1,1) == p(1,i))
         if temp_max < p(2,i)
             temp_max = p(2,i);
             index_max = p(1,i);
@@ -99,22 +99,18 @@ for i = 1:6
     temp = eval(var_name(i,:));
     if antenna == 1
         if correct == 1
-%             new_data(i,:) =(value_max(1)/value_max(i)).*( temp(1,:) + 1i*temp(2,:));
-              new_data(i,:) =(value_max(1)/value_max(i)).*(s_ex(i,:));
+            new_data(i,:) =(value_max(1)/value_max(i)).*(s_ex(i,:));
         else
             new_data(i,:) =(s_ex(i,:));
         end
     else
         if correct == 1
-%             new_data(i,:) =(value_max(1)/value_max(i)).*( temp(3,:) + 1i*temp(4,:));
-            new_data(i,:) =(value_max(1)/value_max(i)).*(s_ex(i,:));
+            new_data(i,:) =((value_max(1)/value_max(i))).*(s_ex(i,:));
         else
             new_data(i,:) =(s_ex(i,:));
         end
     end
     
-    %         new_data(i,:) =( temp(3,:) + 1i*temp(4,:));
-%     [res_cor_com(i,:),lags] = xcorr(new_data(i,:),com_tx);
     if pp_value_max(i) < floor(100000*R)
         pp_value_max(i) = pp_value_max(i) + len/2;
     end
@@ -173,9 +169,7 @@ for i = 1:6
     la_interp = linspace((1-165)/100,(329-165)/100,329);
 %     la_interp_1 = linspace((1-1629)/1e9,(4240-1629)/1e9,4240);
     
-    
     %     plot(la_interp, abs(res_new_interp(i,:)));
-    %     plot(la_interp,  abs(res_new_interp(i ,:))) 
 %     hold on;
 end
 
