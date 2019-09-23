@@ -26,8 +26,8 @@ qpsk = y_in + 1i*y_qd;
 temp = zeros(1,100);
 signal = [chirp,temp,qpsk];
 % signal = [chirp,qpsk];
-signal = awgn(signal,0);
-signal = signal';
+signal = awgn(signal,100);
+
 %%
 rate = 20;
 signal_in = resample(signal,rate,1);
@@ -40,20 +40,6 @@ for i = 1:signal_ex_len
     signal_piont(j,1) = signal_in(rate*(i-1)+piont);
     j = j + 1;
 end
-
-% for r = 1:rate
-%     j = 1;
-%     for i = 1:signal_ex_len
-%         signal_ex(r,j) = signal_in(rate*(i-1)+r);
-%         j = j + 1;
-%     end
-%     [a,b] = xcorr(signal_piont,signal_ex(r,:));
-%     [v_m(2,r),p_temp] = max(a);
-%     v_m(1,r) = b(p_temp);
-%     
-% end
-% figure;plot(v_m(2,:));
-% [r_m(2),r_m(1)] = max(v_m(2,:));
 
 signal_piont_in = resample(signal_piont,rate,1);
 for r = 1:rate
@@ -69,7 +55,6 @@ end
 % figure;plot(v_in_m(2,:));
 [r_m(4),r_m(3)] = max(v_in_m(2,:));
 %%
-
 piont_move = 7;
 tau = (piont_move/2000)*2*pi;
 % ss = signal_piont_in*exp(1i*tau);
