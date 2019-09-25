@@ -19,19 +19,24 @@ B=c_20;B(:,1)=[];B;
 
 %%
 rate = 10;
-signal_ex_len = length(c)/(2*rate);
+signal_ex_len = length(c)/(2*rate); %I(0) Q(0) I(1) Q(1) data formal of original .dat file
 signal_piont_ex = zeros(signal_ex_len,rate);
 
 for i = 1:length(c)/2
-    c_r(i) = c(2*i-1) + 1i*c(2*i);
+    c_r(i) = c(2*i-1) + 1i*c(2*i);  %extra the oversampling data from original .dat file
 end
 
+%if we should "delayseq" function, the formal data should array as one row
+%for a group data
+%loop for rate
 for r = 1:rate
     j = 1;
+    %extra same sampling rate data from oversampling data
     for i = 1:signal_ex_len
-        signal_piont_ex(j,r) = c_r(rate*(i-1)+r);
+        signal_piont_ex(j,r) = c_r(rate*(i-1)+r); 
         j = j + 1;
     end
+    
     for i = 1:101
         temp(:,i) = signal_piont_ex((i-1)*10000 + 1:(i-1)*10000 + 10000,r);
         [a,b] = xcorr(temp(:,i),c_s(1:5000));
@@ -40,7 +45,8 @@ for r = 1:rate
     end
     
 end
-
+%avearage rate times statisitcal result every row
+%mean's second parameter default is 1->row,2->column
 p_mean = mean(p);
 figure;hist(p_mean);
 
