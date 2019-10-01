@@ -80,12 +80,15 @@ p_mean = mean(p);
 figure;histogram(p_mean,50);
 %%
 r_p_mean = p_mean - 1.001645e4;
-histfit(r_p_mean,5,'normal');   %firstly generate the fitting line
+[mu,sigma,muci,sigmaci]=normfit(r_p_mean,0.01);
+normivn(0.9,mu,sigma);
+% confidence = (muci(2)-muci(1))*12.5;
+H = histfit(r_p_mean,5,'normal');   %firstly generate the fitting line
 h = findobj(gca,'Type','line'); %get the fitting line from histfitgram
 xdata=get(h,'XData');
 ydata=get(h,'YData') ;
 yy = ydata/100;     %adjust the data of fitting line
-figure;bar(ht, hf/sum(hf));hold on;plot(xdata,yy);
+figure;bar(H(1).XData, H(1).YData/sum(H(1).YData));hold on;plot(xdata,yy);
 %%
 % piont_move = 17;
 piont_move = mean(p,2);
