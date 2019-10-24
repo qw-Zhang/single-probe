@@ -39,7 +39,7 @@ end
 
     
 %%
-fid = fopen('Txdata_3VSt.dat','w+');
+fid = fopen('Txdata_3VST.dat','w+');
 for i =1:6
     for j = 1:length(result_ttx(i,:))
         fprintf(fid,'%f\t',result_ttx(i,j));

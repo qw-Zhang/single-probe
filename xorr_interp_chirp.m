@@ -51,7 +51,7 @@ chirp = sin(2 * pi*(f0*t / 10000 + (f1 / 2)*power(t / 10000, 2)));
 %%
 %gen chirp calibrate cofficient
 R = 1;
-antenna = 2;correct = 1;
+antenna = 1;correct = 0;
 new_data_chirp = zeros(6,length(eval(var_name(1,:))));
 len = length(new_data_chirp);
 for i = 1:6
@@ -140,6 +140,7 @@ axis([-0.5 1.5 0.05 1.05 ]);
 legend('Synthesized data with correct','Model standard');
 %%
 [start_value,start_index] = max(res_cor_com(1,:));
+res_new = zeros(7,length(start_index-50:start_index+50));
 for i = 1:6
     res_new(i,:) = res_cor_com(i,start_index-50:start_index+50);
     
