@@ -46,7 +46,7 @@ new_data_re = zeros(6,length(eval(var_name(1,:))));
 r = zeros(7,2*length(eval(var_name(1,:)))-1);
 com_tx = Txdata(1,:) + 1i*Txdata(2,:);
 % w = hamming(length(data110dbm(1,:)));
-antenna = 2;correct = 0;
+antenna = 2;correct = 1;
 figure;
 for i = 1:6
     temp = eval(var_name(i,:));
