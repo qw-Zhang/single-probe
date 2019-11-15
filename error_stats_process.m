@@ -1,9 +1,9 @@
-% load('D:\study\OTA\expriment_iecas\DATA\DATA0811\3D_turn\3D_turn_data_extra.mat');
+load('D:\study\OTA\expriment_iecas\DATA\DATA0811\3D_turn\3D_turn_data_extra.mat');
 % load('D:\study\OTA\expriment_iecas\DATA\DATA0811\2D_turn\turn_data_extra.mat');
 % load('D:\study\OTA\expriment_iecas\DATA\DATA0810\tripod\tripod_data_extra.mat');
 % load('D:\study\OTA\expriment_iecas\DATA\DATA0810\multi_tripod\multi_data_extra.mat');
 % load('D:\study\OTA\expriment_iecas\DATA\DATA0824\3D_1\3D_bit_data_extra.mat')
-% load('D:\study\OTA\expriment_iecas\DATA\DATA0811\2D_turn\model_standard.mat');
+load('D:\study\OTA\expriment_iecas\DATA\DATA0811\2D_turn\model_standard.mat');
 
 % for c = 1:2 %amp or tau
 for i = 1:6 %position
@@ -34,4 +34,4 @@ for j = 1:2
         %             error_stats(i,2*j+k-2) = sqrt(error_stats(i,2*j+k-2)/6);
     end
 end
-
+error_stats(1,:) = sqrt(error_stats(1,:));

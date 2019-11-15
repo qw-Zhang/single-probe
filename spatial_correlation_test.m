@@ -59,8 +59,12 @@ figure;plot(d/lambda,abs(spatial));
 
 %%
 %PAS continous->distrete    laplace->impulse
+fc = 2.535e8;
+c = 3e8;
+lambda = c/fc;
+d = linspace(0,lambda,100);
 AOA = round([0.7,-13.2,146.1,-30.5,-11.4,-1.1]);
-phi_a = 60*pi/180;
+phi_a = 0*pi/180;
 pow = [-3,-4.3,-5.7,-7.3,-9,-11.4];
 amp = 10.^(pow/10);
 A = amp./max(amp);
