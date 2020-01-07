@@ -152,7 +152,7 @@ end
 % end
 
 %%
-%xcorr data  of respective angle
+%xcorr data of respective angle
 % new_data = zeros(7,length(eval(var_name(1,:))));
 signal_p = s_result_ex;
 new_data = zeros(length(signal_p),7);
@@ -189,7 +189,7 @@ for i = 1:6
 end
 legend('1','2','3','4','5','6');
 %%
-%xcorr data  of synchronized signal
+%xcorr data of synchronized signal
 nr = zeros(length(new_data(pp_value_max(i):pp_value_max(i)+floor((-100000+200000)*R))),1);
 nr = complex(nr);
 nr_res = zeros(1,length(res_cor_com(1,:)));
