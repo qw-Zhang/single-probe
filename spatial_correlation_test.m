@@ -337,7 +337,7 @@ error_tk = zeros(1,length(ideal_phi));
 spatial_num = zeros(length(d),1);
 
 %simulate radius of circle
-r = 0.8;
+r = 1;
 
 t = linspace(0,1e-5,100);
 sig = exp(1i*2*pi*fc*t);
@@ -367,6 +367,7 @@ for i = 1:length(d)
 %         r2(i,j) = rx_2_fft(p);
     end
     
+%     Corr(:,:,i) = abs(corrcoef(h_new_1(i,:),h_new_2(i,:)));
 %     spatial_circle_sig(i) = sum(r1(i,:).*conj(r2(i,:)))/sum(r1(1,:).*conj(r2(1,:)));
     
     %randomly choose one point in signal sequence. "100" is chosen randomly
@@ -384,12 +385,16 @@ for i = 1:length(d)
     h2_cal = reshape(conj(h(i,2,:)),1,length(PAS));
     spatial_num(i,:) = sum(h1_cal.*h2_cal);
     
+    Corr(i,:,:) = abs(corrcoef(squeeze(h(i,1,:)),squeeze(h(i,2,:))));
+    
     %using traditional method(ideally equation) calculate
     for k = 1:length(ideal_phi)
         tau(k) = d(i)*sin(ideal_phi(k)-phi_a)/c;
         spatial(2,i) = spatial(2,i) + exp(-1i*2*pi*fc * (tau(k) + error_tk(k)) ).*PAS(k)/sum_PAS;
     end
 end
+
+Correaltion = squeeze(Corr(:,1,2));
 
 %calculate the statistical error
 % stat = sum(abs(spatial(2,:)-spatial(1,:)))/length(spatial(1,:))
@@ -402,6 +407,7 @@ plot(d/lambda,abs(spatial(2,:)),'r');
 plot(d/lambda,abs(spatial_num),'g');
 plot(d/lambda,abs(spatial_circle),'y');
 plot(d/lambda,abs(spatial_circle_sig),'b');
+% plot(d/lambda,Correaltion,'p');
 axis([0 1 0 1]);
 xlabel('Antenna Separation in wavelength');
 ylabel('Spatial Correlation');
