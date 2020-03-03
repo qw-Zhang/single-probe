@@ -1,5 +1,5 @@
 fc = 2.535e9;
-ant = design(dipole,fc);
+ant = design(dipole  ,fc);
 %generate the pattern gain of the antenna.
 %parameter:antenna,frequency,al,ez.
 %G(dBi)=10lgGi G(dBd)=10lgG dBi=dBd+2.15

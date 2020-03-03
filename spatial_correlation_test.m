@@ -137,7 +137,6 @@ lambda = c/fc;
 d = linspace(0,lambda,100);
 new_d = linspace(0,lambda/2,100);
 ideal_phi = linspace(-pi,pi,360);
-PAS = zeros(1,length(ideal_phi));
 
 real_phi = linspace(-pi,pi,18);
 real_PAS = zeros(1,length(real_phi));
@@ -145,7 +144,7 @@ real_PAS = zeros(1,length(real_phi));
 rate = length(ideal_phi)/length(real_phi);
 
 phi_a = 0*pi/180;
-scenario = 'macro';
+scenario = 'micro';
 
 switch scenario
     case 'test'
@@ -234,7 +233,7 @@ rx_1 = repmat(1+1j,length(d),length(ideal_phi),length(sig));
 rx_2 = repmat(1+1j,length(d),length(ideal_phi),length(sig));
 spatial_circle_sig = zeros(1,length(d));
 spatial_circle = zeros(1,length(d));
-
+[d_1, d_2, delta_d, h_sig_1, h_sig_2] = deal(zeros(length(d), length(ideal_phi)));
 for i = 1:length(d)
     %simulate spatial correlation using two antennas with circle
     for j = 1:length(ideal_phi)
@@ -243,10 +242,10 @@ for i = 1:length(d)
         d_1(i,j) = sqrt( r^2 + new_d(i)^2 - 2*new_d(i)*r*cos( phi_1 + pi/2 ) );
         d_2(i,j) = sqrt( r^2 + new_d(i)^2 - 2*new_d(i)*r*cos( phi_2 - pi/2 ) );
         delta_d(i,j) = d_2(i,j) - d_1(i,j);
-        h_new_1(i,j) = alpha*exp(1j*(beta(j))).*sqrt(PAS(j)/sum_PAS);
-        h_new_2(i,j) = alpha*exp(1j*(beta(j) + 2*pi*delta_d(i,j)/lambda)).*sqrt(PAS(j)/sum_PAS);
-        rx_1(i,j,:) = conv(h_new_1(i,j),sig);
-        rx_2(i,j,:) = conv(h_new_2(i,j),sig);
+        h_sig_1(i,j) = alpha*exp(1j*(beta(j))).*sqrt(PAS(j)/sum_PAS);
+        h_sig_2(i,j) = alpha*exp(1j*(beta(j) + 2*pi*delta_d(i,j)/lambda)).*sqrt(PAS(j)/sum_PAS);
+        rx_1(i,j,:) = conv(h_sig_1(i,j),sig);
+        rx_2(i,j,:) = conv(h_sig_2(i,j),sig);
     end
     
     %     Corr(:,:,i) = abs(corrcoef(h_new_1(i,:),h_new_2(i,:)));
@@ -255,7 +254,30 @@ for i = 1:length(d)
     num = randi([1,length(d)],1);
     %randomly choose one point in signal sequence. "100" is chosen randomly
     spatial_circle_sig(i) = sum(rx_1(i,:,num).*conj(rx_2(i,:,num)));
-    spatial_circle(i) = sum(h_new_1(i,:).*conj(h_new_2(i,:)));
+    spatial_circle(i) = sum(h_sig_1(i,:).*conj(h_sig_2(i,:)));
+    
+    %simulate spatial correlation using two antennas with circle, 
+    %real phi and PAS
+    
+    for j = 1:length(real_phi)
+        phi_real_1 = (real_phi(j) - phi_a);
+        phi_real_2 = pi - phi_real_1;
+        d_real(1,i,j) = sqrt( r^2 + new_d(i)^2 - 2*new_d(i)*r*cos( phi_real_1 + pi/2 ) );
+        d_real(2,i,j) = sqrt( r^2 + new_d(i)^2 - 2*new_d(i)*r*cos( phi_real_2 - pi/2 ) );
+        delta_real_d(i,j) = d_real(2,i,j) - d_real(1,i,j);
+        h_sig_real_1(i,j) = alpha*exp(1j*(beta(j))).*sqrt(real_PAS(j)/real_sum_PAS);
+        h_sig_real_2(i,j) = alpha*exp(1j*(beta(j) + 2*pi*delta_real_d(i,j)/lambda)).*sqrt(real_PAS(j)/real_sum_PAS);
+        rx_real_1(i,j,:) = conv(h_sig_real_1(i,j),sig);
+        rx_real_2(i,j,:) = conv(h_sig_real_2(i,j),sig);
+    end
+    
+    %     Corr(:,:,i) = abs(corrcoef(h_new_1(i,:),h_new_2(i,:)));
+    %     spatial_circle_sig(i) = sum(r1(i,:).*conj(r2(i,:)))/sum(r1(1,:).*conj(r2(1,:)));
+    
+    num = randi([1,length(d)],1);
+    %randomly choose one point in signal sequence. "100" is chosen randomly
+    spatial_circle_real_sig(i) = sum(rx_real_1(i,:,num).*conj(rx_real_2(i,:,num)));
+    spatial_circle_real(i) = sum(h_sig_real_1(i,:).*conj(h_sig_real_2(i,:)));
     
     beta1 = 0;
     %using numberical method calculate the spatial correlation
@@ -279,19 +301,20 @@ end
 Correaltion = squeeze(Corr(:,1,2));
 
 %calculate the statistical error
-% stat = sum(abs(spatial(2,:)-spatial(1,:)))/length(spatial(1,:))
+stat = sum(abs(spatial_circle_real_sig-spatial_num'))/length(spatial_num)
 
 %plot spatial correlation
 figure;
 %plot(d/lambda,abs(spatial(1,:)),'b');
 hold on;
-plot(d/lambda,abs(spatial(2,:)),'r');
-plot(d/lambda,abs(spatial_num),'g');
-plot(d/lambda,abs(spatial_circle),'y');
-plot(d/lambda,abs(spatial_circle_sig),'b');
+% plot(d/lambda,abs(spatial(2,:)),'r');
+plot(d/lambda,abs(spatial_num),'green');
+plot(d/lambda,abs(spatial_circle_real_sig),'red');
+plot(d/lambda,abs(spatial_circle_sig),'blue');
 % plot(d/lambda,Correaltion,'p');
 % axis([0 1 0 1]);
 xlabel('Antenna Separation in wavelength');
 ylabel('Spatial Correlation');
 grid on;
-legend('theo equation','theo num','sim circle h','sim circle sig');
+% legend('theo equation','theo num','sim circle h','sim circle sig');
+legend('theo num','sim circle real sig','sim circle sig');
