@@ -17,5 +17,5 @@ octave-workspace
 .autosave
 
 #some document
-.docx
-.doc
+*.docx
+*.doc
