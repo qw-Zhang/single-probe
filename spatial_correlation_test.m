@@ -202,6 +202,30 @@ for i = 1:length(real_phi)
     real_phi(i) = sum(ideal_phi(rate*(i-1)+1:rate*i))/rate;
 end
 
+
+%Rx one antenna pattern
+ant = design(dipole ,fc);
+%generate the pattern gain of the antenna.
+%parameter:antenna,frequency,al,ez.
+%G(dBi)=10lgGi G(dBd)=10lgG dBi=dBd+2.15
+% [D,al,ez] = pattern(ant,fc,0:1:360,-90:1:90);
+[P_rx] = patternAzimuth(ant,fc,'Azimuth',-180:1:180);
+
+%Define Rx Array
+arrayObject = linearArray;
+arrayObject.NumElements = 2;
+%Define Array Elements
+Element1 = dipole;
+arrayObject.Element = [Element1 ];
+% Design array at frequency 2535000000Hz
+arrayObject = design(arrayObject,2535000000,Element1);
+%arrayObject Properties Changed
+arrayObject.ElementSpacing = 0.05;
+% Azimuth for linearArray
+plotFrequency = 2535000000; azRange = 0:1:360; Termination = 50;
+figure;
+[P_az] = pattern(arrayObject, plotFrequency,azRange,0,'Termination',Termination);
+
 spatial = zeros(2,length(d));
 beta = -pi + (pi--pi).*rand(1,length(ideal_phi));
 % beta = 0;

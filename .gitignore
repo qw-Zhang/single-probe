@@ -15,3 +15,7 @@ octave-workspace
 
 # Simulink autosave extension
 .autosave
+
+#some document
+.docx
+.doc

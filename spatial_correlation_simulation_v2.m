@@ -6,7 +6,7 @@
 %   3. simulation two antennas with circle method
 %   4. add signal transfer based method_3
 % clear;
-function [stat, spatial_circle_real_sig, spatial_num] = spatial_correlation_simulation(real_phi,error_tk,ant_able)
+function [stat, spatial_circle_real_sig, spatial_num] = spatial_correlation_simulation_v2(real_phi,error_tk,ant_able)
 fc = 2.535e9;
 c = 3e8;
 lambda = c/fc;
@@ -45,15 +45,6 @@ switch scenario
     otherwise
         error('wrong scenario.');
 end
-
-% %ideal scenario
-% amp = 10.^(pow/10);
-% A = amp./max(amp);
-% for i = 1:length(ideal_phi)
-%     for j = 1:length(AOA)
-%         PAS(i) = PAS(i) + A(j)*(1/(2*AS))*(exp(-abs(ideal_phi(i)-AOA(j))/AS));
-%     end
-% end
 
 %ideal scenario
 amp = 10.^(pow/10);
