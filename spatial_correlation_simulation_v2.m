@@ -1,4 +1,3 @@
-%%
 %test with h1 h2 without the euqalation of saptial correlation
 %using three method generate spatial correlation:
 %   1. traditional formula method
@@ -62,19 +61,9 @@ real_PAS = real_PAS/real_sum_PAS;
 %parameter:antenna,frequency,al,ez.
 %G(dBi)=10lgGi G(dBd)=10lgG dBi=dBd+2.15
 % [D,al,ez] = pattern(ant,fc,0:1:360,-90:1:90);
+
 if ant_able
-    % Antenna Properties
-    % Design antenna at frequency 2535000000Hz
-    ant = design(dipole,fc);
-    % Update load properties
-    ant.Load.Impedance = 50;
-    ant.Load.Frequency = fc;
-    % Define plot frequency
-    plotFrequency = fc;
-    % Define frequency range
-    freqRange = (2281.5:25.35:2788.5) * 1e6;
-    % azimuth for dipole
-    P_az = patternAzimuth(ant,plotFrequency,0,'Azimuth',-180:1:180);
+    P_az = generate_pattern(fc);
 else
     P_az = zeros(1,360);
 end
@@ -108,7 +97,7 @@ spatial_circle = zeros(1,length(d));
 rx_real_1 = repmat(1+1j,length(d),length(phi_sample),length(sig));
 rx_real_2 = repmat(1+1j,length(d),length(phi_sample),length(sig));
 [spatial_circle_real_sig, spatial_circle_real] = deal(zeros(1,length(d)));
-
+ang_debug = zeros(length(phi_sample),2);
 for i = 1:length(d)
     %simulate spatial correlation using two antennas with circle
     for j = 1:length(ideal_phi)
@@ -118,8 +107,8 @@ for i = 1:length(d)
         delta_d(i,j) = d_2(i,j) - d_1(i,j);
         h_sig_1(i,j) = alpha*exp(1j*(beta(j))).*sqrt(PAS(j));
         h_sig_2(i,j) = alpha*exp(1j*(beta(j) + 2*pi*delta_d(i,j)/lambda)).*sqrt(PAS(j));
-        [ang_P_1,ang_P_2] = generate_ang_pattern(d_1(i,j),d_2(i,j),r,(pi/2 - phi),(phi + pi/2));
-        %          [ang_P_1, ang_P_2]
+        [ang_P_1,ang_P_2] = generate_ang_of_pattern(d_1(i,j),d_2(i,j),new_d(i),r,(pi/2 - phi),(phi + pi/2));
+        
         rx_1(i,j,:) = P_az_amp((ang_P_1))*conv(h_sig_1(i,j),sig);
         rx_2(i,j,:) = P_az_amp((ang_P_2))*conv(h_sig_2(i,j),sig);
     end
@@ -148,7 +137,8 @@ for i = 1:length(d)
         h_sig_real_1(i,j) = alpha*exp(1j*(beta(j))).*sqrt(real_PAS(j));
         h_sig_real_2(i,j) = alpha*exp(1j*(beta(j) + 2*pi*delta_real_d(i,j)/lambda)).*sqrt(real_PAS(j));
         %         [ang1,ang2] = scale_angle(phi_real_1 + pi/2, phi_real_2 - pi/2 ); %ang is deg not rad
-        [ang_P_1,ang_P_2] = generate_ang_pattern(d_real_1(i,j),d_real_2(i,j),r,(pi/2 - phi_real),(phi_real + pi/2));
+        [ang_P_1,ang_P_2] = generate_ang_of_pattern(d_real_1(i,j),d_real_2(i,j),new_d(i),r,(pi/2 - phi_real),(phi_real + pi/2));
+        ang_debug(j,:) = [ang_P_1, ang_P_2];
         rx_real_1(i,j,:) = P_az_amp(ang_P_1)*(h_sig_real_1(i,j)*sig);
         rx_real_2(i,j,:) = P_az_amp(ang_P_2)*(h_sig_real_2(i,j)*sig)*exp(1i*2*pi*fc*error_tk(length(phi_sample)*(i-1)+j));
     end

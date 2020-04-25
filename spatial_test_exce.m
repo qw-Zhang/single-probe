@@ -31,7 +31,7 @@ for i = 15:15
     %uniform choose the location of probe
     phi_sample = linspace(-pi,pi,probe_pos(i));
     error_tk = 0*randn(1,100*length(phi_sample));
-    [error_1(i), sim_sig, sim_theo] = spatial_correlation_simulation_v2(phi_sample,error_tk,false);
+    [error_1(i), sim_sig, sim_theo] = spatial_correlation_simulation_v2(phi_sample,error_tk,true);
     %     figure;hold on;
     %     plot(abs(sim_sig));
     %     plot(abs(sim_theo));
