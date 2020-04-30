@@ -1,13 +1,6 @@
-%test with h1 h2 without the euqalation of saptial correlation
-%using three method generate spatial correlation:
-%   1. traditional formula method
-%   2. numberical calculation method
-%   3. simulation two antennas with circle method
-%   4. add signal transfer based method_3
-
 %this version change the way of error
 function [stat, spatial_circle_real_sig, spatial_num] = ...
-    spatial_correlation_simulation_v3(phi_sample,error_para,ant_able)
+    spa_corr_grid_simulation_v2(phi_sample,error_para,ant_able)
 fc = 2.535e9;
 c = 3e8;
 lambda = c/fc;
@@ -96,28 +89,28 @@ rx_1 = repmat(1+1j,length(d),length(ideal_phi),length(sig));
 rx_2 = repmat(1+1j,length(d),length(ideal_phi),length(sig));
 rx_real_1 = repmat(1+1j,length(d),length(phi_sample),length(sig));
 rx_real_2 = repmat(1+1j,length(d),length(phi_sample),length(sig));
-sample_t = 2000;    %sample times at one angle
-error = zeros(1,sample_t);
-ang_error = zeros(1,sample_t);
-error_mean = zeros(length(d),length(phi_sample));
-rx_real_sample_1 = repmat(1+1j,length(d),length(phi_sample),length(sig));
-rx_real_sample_2 = repmat(1+1j,length(d),length(phi_sample),length(sig));
 [spatial_circle, spatial_circle_sig, spatial_circle_real_sig, spatial_circle_real] = deal(zeros(1,length(d)));
 ang_debug = zeros(length(phi_sample),2);
-for i = 1:length(d)
-    %simulate spatial correlation using two antennas with circle
-    for j = 1:length(ideal_phi)
-        phi = ideal_phi(j) - phi_a;
-        d_1(i,j) = sqrt( r^2 + new_d(i)^2 - 2*new_d(i)*r*cos( pi/2 - phi ) );
-        d_2(i,j) = sqrt( r^2 + new_d(i)^2 - 2*new_d(i)*r*cos( phi + pi/2 ) );
-        delta_d(i,j) = d_2(i,j) - d_1(i,j);
-        h_sig_1(i,j) = alpha*exp(1j*(beta(j))).*sqrt(PAS(j));
-        h_sig_2(i,j) = alpha*exp(1j*(beta(j) + 2*pi*delta_d(i,j)/lambda)).*sqrt(PAS(j));
-        [ang_P_1,ang_P_2] = generate_ang_of_pattern(d_1(i,j),d_2(i,j),new_d(i),r,(pi/2 - phi),(phi + pi/2));
-        rx_1(i,j,:) = P_az_amp((ang_P_1))*conv(h_sig_1(i,j),sig);
-        rx_2(i,j,:) = P_az_amp((ang_P_2))*conv(h_sig_2(i,j),sig);
-    end
-    
+% bias_x = 
+% bias_y = 
+x0 = 0.5*lambda;y0 = -0.3*lambda;   %center coordinate of two ants
+for i = 1:length(new_d)
+%     %simulate spatial correlation using two antennas with circle
+%     pos_ant_1 = [new_d(i)*cos(phi_a),new_d(i)*sin(phi_a)]; %(x,y)
+%     pos_ant_2 = [-new_d(i)*cos(phi_a),-1*new_d(i)*sin(phi_a)];
+%     for j = 1:length(ideal_phi)
+%         phi = ideal_phi(j) - phi_a;
+%         top = [r*cos(phi+pi/2),r*sin(phi+pi/2)];
+%         d_1(i,j) = sqrt((pos_ant_1(1) - top(1))^2 + (pos_ant_1(2) - top(2))^2);
+%         d_2(i,j) = sqrt((pos_ant_2(1) - top(1))^2 + (pos_ant_2(2) - top(2))^2);
+%         delta_d(i,j) = d_2(i,j) - d_1(i,j);
+%         h_sig_1(i,j) = alpha*exp(1j*(beta(j))).*sqrt(PAS(j));
+%         h_sig_2(i,j) = alpha*exp(1j*(beta(j) + 2*pi*delta_d(i,j)/lambda)).*sqrt(PAS(j));
+%         [ang_P_1,ang_P_2] = generate_ang_of_pattern(d_1(i,j),d_2(i,j),new_d(i),r,(pi/2 - phi),(phi + pi/2));
+%         rx_1(i,j,:) = P_az_amp((ang_P_1))*conv(h_sig_1(i,j),sig);
+%         rx_2(i,j,:) = P_az_amp((ang_P_2))*conv(h_sig_2(i,j),sig);
+%     end
+%     
     % Corr(:,:,i) = abs(corrcoef(h_new_1(i,:),h_new_2(i,:)));
     % spatial_circle_sig(i) = sum(r1(i,:).*conj(r2(i,:)))/sum(r1(1,:).*conj(r2(1,:)));
     
@@ -131,29 +124,24 @@ for i = 1:length(d)
     
     for j = 1:length(phi_sample)
         phi_real = (phi_sample(j) - phi_a);
-        %         phi_real_2 = pi - phi_real_1;
-        d_real_1(i,j) = sqrt( r^2 + new_d(i)^2 - 2*new_d(i)*r*cos( pi/2 - phi_real ) );
-        d_real_2(i,j) = sqrt( r^2 + new_d(i)^2 - 2*new_d(i)*r*cos( phi_real + pi/2 ) );
+        top = [r*cos(phi_real+pi/2),r*sin(phi_real+pi/2)];
+        pos_ant_1 = [x0 + new_d(i)*cos(phi_a),y0 + new_d(i)*sin(phi_a)]; %(x,y)
+        pos_ant_2 = [x0 - new_d(i)*cos(phi_a),y0 - new_d(i)*sin(phi_a)];
+        d_real_1(i,j) = sqrt((pos_ant_1(1) - top(1))^2 + (pos_ant_1(2) - top(2))^2);
+        d_real_2(i,j) = sqrt((pos_ant_2(1) - top(1))^2 + (pos_ant_2(2) - top(2))^2);
         delta_real_d(i,j) = d_real_2(i,j) - d_real_1(i,j);
-        %                 %random error
-        %         % !!!   1/100 nanosecond...
-        %         error_tk = 1e-11*randn(1,1);
-        % %         error_tk = zeros(1,1);
+        %    %random error
+        %    % !!!   1/100 nanosecond...
+        %    error_tk = 1e-11*randn(1,1);
+        %    error_tk = zeros(1,1);
         h_sig_real_1(i,j) = alpha*exp(1j*(beta(j))).*sqrt(real_PAS(j));
         h_sig_real_2(i,j) = alpha*exp(1j*(beta(j) + 2*pi*delta_real_d(i,j)/lambda)).*sqrt(real_PAS(j));
         %         [ang1,ang2] = scale_angle(phi_real_1 + pi/2, phi_real_2 - pi/2 ); %ang is deg not rad
-        [ang_P_1,ang_P_2] = generate_ang_of_pattern(d_real_1(i,j),d_real_2(i,j),new_d(i),r,(pi/2 - phi_real),(phi_real + pi/2));
-%         ang_debug(j,:) = [ang_P_1, ang_P_2];
+        [ang_P_1,ang_P_2] = generate_ang_of_pattern_v2(top,pos_ant_1,pos_ant_2);
+        %         ang_debug(j,:) = [ang_P_1, ang_P_2];
+        error = error_para(1) + error_para(2)*randn(1,1);
         rx_real_1(i,j,:) = P_az_amp(ang_P_1)*(h_sig_real_1(i,j)*sig);
-        rx_real_2(i,j,:) = P_az_amp(ang_P_2)*(h_sig_real_2(i,j)*sig);
-        for k = 1:sample_t
-            error(k) = error_para(1) + error_para(2)*randn(1,1);
-            rx_real_sample_1(i,j,:) = rx_real_1(i,j,:);
-            rx_real_sample_2(i,j,:) = rx_real_2(i,j,:)*exp(1i*2*pi*fc*error(k));
-            ang_error(k) = angle(rx_real_sample_2(i,j,25)) - angle(rx_real_2(i,j,25));
-        end
-        error_mean(i,j) = mean(ang_error);
-        rx_real_2 = rx_real_2*exp(1i*-1*error_mean(i,j));
+        rx_real_2(i,j,:) = P_az_amp(ang_P_2)*(h_sig_real_2(i,j)*sig)*exp(1i*2*pi*fc*error);
     end
     
     %randomly choose one point in signal sequence. "100" is chosen randomly
@@ -179,19 +167,19 @@ for i = 1:length(d)
     
     %     Corr(i,:,:) = abs(corrcoef(squeeze(h(i,1,:)),squeeze(h(i,2,:))));
     
-%     %using traditional method(ideally equation) calculate
-%     tau = zeros(1,length(ideal_phi));
-%     for k = 1:length(ideal_phi)
-%         tau(k) = d(i)*sin(ideal_phi(k)-phi_a)/c;
-%         spatial(2,i) = spatial(2,i) + exp(-1i*2*pi*fc * (tau(k) + error_para(k)) ).*PAS(k);
-%     end
+    %     %using traditional method(ideally equation) calculate
+    %     tau = zeros(1,length(ideal_phi));
+    %     for k = 1:length(ideal_phi)
+    %         tau(k) = d(i)*sin(ideal_phi(k)-phi_a)/c;
+    %         spatial(2,i) = spatial(2,i) + exp(-1i*2*pi*fc * (tau(k) + error_para(k)) ).*PAS(k);
+    %     end
 end
 spatial_circle_sig = spatial_circle_sig./spatial_circle_sig(1);
 spatial_circle_real_sig = spatial_circle_real_sig./spatial_circle_real_sig(1);
 % Correaltion = squeeze(Corr(:,1,2));
 
 %calculate the statistical error
-stat = sum(abs((abs(spatial_circle_real_sig)-abs(spatial_circle_sig))))/length(spatial_circle_sig);
+stat = sqrt(sum(power(abs(spatial_circle_real_sig)-abs(spatial_num'),2))/length(spatial_num));
 
 %plot spatial correlation
 figure;
@@ -200,11 +188,11 @@ hold on;
 % plot(d/lambda,abs(spatial(2,:)),'black');
 plot(d/lambda,abs(spatial_num),'green');
 plot(d/lambda,abs(spatial_circle_real_sig),'red');
-plot(d/lambda,abs(spatial_circle_sig),'blue');
+% plot(d/lambda,abs(spatial_circle_sig),'blue');
 % plot(d/lambda,Correaltion,'p');
 % axis([0 1 0 1]);
 xlabel('Antenna Separation in wavelength');
 ylabel('Spatial Correlation');
 grid on;
 % legend('theo equation','theo num','sim circle h','sim circle sig');
-legend('theo num','sim circle real sig','sim circle sig');
+legend('theo num','sim circle real sig' );

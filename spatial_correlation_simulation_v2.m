@@ -21,7 +21,7 @@ rate = floor(length(ideal_phi)/length(phi_sample));
 % rate = length(ideal_phi)/length(real_phi);
 
 %scenario parameters
-phi_a = 0*pi/180;
+phi_a = 30*pi/180;
 scenario = 'micro';
 switch scenario
     case 'test'
