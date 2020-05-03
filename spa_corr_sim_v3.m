@@ -144,9 +144,9 @@ for i = 1:length(d)
 %         ang_debug(j,:) = [ang_P_1, ang_P_2];
         rx_real_1(i,j,:) = P_az_amp(ang_P_1)*(h_sig_real_1(i,j)*sig);
         rx_real_2(i,j,:) = P_az_amp(ang_P_2)*(h_sig_real_2(i,j)*sig);
-        sig_ori_fft = fft(rx_real_2(i,j,:),512);
-        [v_ori_max, pos_ori_max] = max(abs(sig_ori_fft));
-        ang_ori(i,j) = angle(sig_ori_fft(pos_ori_max));
+%         sig_ori_fft = fft(rx_real_2(i,j,:),512);
+%         [v_ori_max, pos_ori_max] = max(abs(sig_ori_fft));
+%         ang_ori(i,j) = angle(sig_ori_fft(pos_ori_max));
         for k = 1:sample_t
             error(k) = error_para(1) + error_para(2)*randn(1,1);
             rx_real_sample_2 = rx_real_2(i,j,:)*exp(1i*2*pi*fc*error(k));
@@ -154,9 +154,6 @@ for i = 1:length(d)
             [v_max, pos_max] = max(abs(fft_temp));
             ang_est(k) = angle(fft_temp(pos_max));
         end
-        %         ang_est_mean = mean(ang_est);
-        %         [v_min,pos_min] = min(abs(ang_est - ang_est_mean));
-        %         rx_real_2(i,j,:) = rx_real_sample_2(pos_min,:)*exp(1i*-v_min);
         [h_y,h_x] = hist(ang_est,50);
         [vh_y,ph_y] = max(h_y);
         rx_real_2(i,j,:) = rx_real_sample_2*exp(1i*-ang_est(k))*exp(1i*h_x(ph_y));
@@ -197,7 +194,7 @@ spatial_circle_real_sig = spatial_circle_real_sig./spatial_circle_real_sig(1);
 % Correaltion = squeeze(Corr(:,1,2));
 
 %calculate the statistical error
-stat = sum(abs((abs(spatial_circle_real_sig)-abs(spatial_circle_sig))))/length(spatial_circle_sig);
+stat = sqrt(sum(power(abs(spatial_circle_real_sig)-abs(spatial_circle_sig),2))/length(spatial_circle_sig));
 
 %plot spatial correlation
 figure;
