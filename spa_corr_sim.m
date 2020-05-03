@@ -6,7 +6,7 @@
 %   3. simulation two antennas with circle method
 %   4. add signal transfer based method_3
 % clear;
-function [stat, spatial_circle_real_sig, spatial_num] = spatial_correlation_simulation(real_phi,error_tk,ant_able)
+function [stat, spatial_circle_real_sig, spatial_num] = spa_corr_sim(real_phi,error_tk,ant_able)
 fc = 2.535e9;
 c = 3e8;
 lambda = c/fc;

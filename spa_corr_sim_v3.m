@@ -4,8 +4,10 @@
 %   2. numberical calculation method
 %   3. simulation two antennas with circle method
 %   4. add signal transfer based method_3
-% clear;
-function [stat, spatial_circle_real_sig, spatial_num] = spatial_correlation_simulation_v2(phi_sample,error_tk,ant_able)
+
+%this version change the way of error
+function [stat, spatial_circle_real_sig, spatial_num] = ...
+    spa_corr_sim_v3(phi_sample,error_para,ant_able)
 fc = 2.535e9;
 c = 3e8;
 lambda = c/fc;
@@ -21,7 +23,7 @@ rate = floor(length(ideal_phi)/length(phi_sample));
 % rate = length(ideal_phi)/length(real_phi);
 
 %scenario parameters
-phi_a = 30*pi/180;
+phi_a = 0*pi/180;
 scenario = 'micro';
 switch scenario
     case 'test'
@@ -79,7 +81,7 @@ spatial_num = zeros(length(d),1);
 %simulate radius of circle
 r = 1;
 
-t = linspace(0,1e-5,100);
+t = linspace(0,1e-9,100);
 % doppler frequency fd = fc*v*cos(theta)/c
 v = 10; %m/s
 theta = 30*pi/180;
@@ -88,15 +90,22 @@ sig = exp(1i*2*pi*(fc + fd)*t);
 
 %init matrix
 h = repmat(1+1j, length(d), 2, length(ideal_phi));
-rx_1 = repmat(1+1j,length(d),length(ideal_phi),length(sig));
-rx_2 = repmat(1+1j,length(d),length(ideal_phi),length(sig));
-spatial_circle_sig = zeros(1,length(d));
-spatial_circle = zeros(1,length(d));
 [d_1, d_2, delta_d, h_sig_1, h_sig_2] = deal(zeros(length(d), length(ideal_phi)));
 [d_real_1, d_real_2, delta_real_d, h_sig_real_1, h_sig_real_2] = deal(zeros(length(d), length(phi_sample)));
+rx_1 = repmat(1+1j,length(d),length(ideal_phi),length(sig));
+rx_2 = repmat(1+1j,length(d),length(ideal_phi),length(sig));
 rx_real_1 = repmat(1+1j,length(d),length(phi_sample),length(sig));
 rx_real_2 = repmat(1+1j,length(d),length(phi_sample),length(sig));
-[spatial_circle_real_sig, spatial_circle_real] = deal(zeros(1,length(d)));
+sample_t = 1000;    %sample times at one angle
+error = zeros(1,sample_t);
+ang_error = zeros(1,sample_t);
+error_mean = zeros(length(d),length(phi_sample));
+% rx_real_sample_1 = repmat(1+1j,length(d),length(phi_sample),length(sig));
+% rx_real_sample_2 = repmat(1+1j,sample_t,length(sig));
+rx_real_sample_2 = repmat(1+1j,1,length(sig));
+[spatial_circle, spatial_circle_sig, spatial_circle_real_sig, spatial_circle_real] = deal(zeros(1,length(d)));
+ang_est = zeros(1,sample_t);
+ang_ori = zeros(length(d),length(phi_sample));
 ang_debug = zeros(length(phi_sample),2);
 for i = 1:length(d)
     %simulate spatial correlation using two antennas with circle
@@ -108,13 +117,12 @@ for i = 1:length(d)
         h_sig_1(i,j) = alpha*exp(1j*(beta(j))).*sqrt(PAS(j));
         h_sig_2(i,j) = alpha*exp(1j*(beta(j) + 2*pi*delta_d(i,j)/lambda)).*sqrt(PAS(j));
         [ang_P_1,ang_P_2] = generate_ang_of_pattern(d_1(i,j),d_2(i,j),new_d(i),r,(pi/2 - phi),(phi + pi/2));
-        
         rx_1(i,j,:) = P_az_amp((ang_P_1))*conv(h_sig_1(i,j),sig);
         rx_2(i,j,:) = P_az_amp((ang_P_2))*conv(h_sig_2(i,j),sig);
     end
     
-    %     Corr(:,:,i) = abs(corrcoef(h_new_1(i,:),h_new_2(i,:)));
-    %     spatial_circle_sig(i) = sum(r1(i,:).*conj(r2(i,:)))/sum(r1(1,:).*conj(r2(1,:)));
+    % Corr(:,:,i) = abs(corrcoef(h_new_1(i,:),h_new_2(i,:)));
+    % spatial_circle_sig(i) = sum(r1(i,:).*conj(r2(i,:)))/sum(r1(1,:).*conj(r2(1,:)));
     
     num = randi([1,length(d)],1);
     %randomly choose one point in signal sequence. "100" is chosen randomly
@@ -126,29 +134,39 @@ for i = 1:length(d)
     
     for j = 1:length(phi_sample)
         phi_real = (phi_sample(j) - phi_a);
-%         phi_real_2 = pi - phi_real_1;
+        %         phi_real_2 = pi - phi_real_1;
         d_real_1(i,j) = sqrt( r^2 + new_d(i)^2 - 2*new_d(i)*r*cos( pi/2 - phi_real ) );
         d_real_2(i,j) = sqrt( r^2 + new_d(i)^2 - 2*new_d(i)*r*cos( phi_real + pi/2 ) );
         delta_real_d(i,j) = d_real_2(i,j) - d_real_1(i,j);
-        %                 %random error
-        %         % !!!   1/100 nanosecond...
-        %         error_tk = 1e-11*randn(1,1);
-        % %         error_tk = zeros(1,1);
         h_sig_real_1(i,j) = alpha*exp(1j*(beta(j))).*sqrt(real_PAS(j));
         h_sig_real_2(i,j) = alpha*exp(1j*(beta(j) + 2*pi*delta_real_d(i,j)/lambda)).*sqrt(real_PAS(j));
-        %         [ang1,ang2] = scale_angle(phi_real_1 + pi/2, phi_real_2 - pi/2 ); %ang is deg not rad
         [ang_P_1,ang_P_2] = generate_ang_of_pattern(d_real_1(i,j),d_real_2(i,j),new_d(i),r,(pi/2 - phi_real),(phi_real + pi/2));
-        ang_debug(j,:) = [ang_P_1, ang_P_2];
+%         ang_debug(j,:) = [ang_P_1, ang_P_2];
         rx_real_1(i,j,:) = P_az_amp(ang_P_1)*(h_sig_real_1(i,j)*sig);
-        rx_real_2(i,j,:) = P_az_amp(ang_P_2)*(h_sig_real_2(i,j)*sig)*exp(1i*2*pi*fc*error_tk(length(phi_sample)*(i-1)+j));
+        rx_real_2(i,j,:) = P_az_amp(ang_P_2)*(h_sig_real_2(i,j)*sig);
+        sig_ori_fft = fft(rx_real_2(i,j,:),512);
+        [v_ori_max, pos_ori_max] = max(abs(sig_ori_fft));
+        ang_ori(i,j) = angle(sig_ori_fft(pos_ori_max));
+        for k = 1:sample_t
+            error(k) = error_para(1) + error_para(2)*randn(1,1);
+            rx_real_sample_2 = rx_real_2(i,j,:)*exp(1i*2*pi*fc*error(k));
+            fft_temp = fft(rx_real_sample_2,512);
+            [v_max, pos_max] = max(abs(fft_temp));
+            ang_est(k) = angle(fft_temp(pos_max));
+        end
+        %         ang_est_mean = mean(ang_est);
+        %         [v_min,pos_min] = min(abs(ang_est - ang_est_mean));
+        %         rx_real_2(i,j,:) = rx_real_sample_2(pos_min,:)*exp(1i*-v_min);
+        [h_y,h_x] = hist(ang_est,50);
+        [vh_y,ph_y] = max(h_y);
+        rx_real_2(i,j,:) = rx_real_sample_2*exp(1i*-ang_est(k))*exp(1i*h_x(ph_y));
     end
     
-    
     %randomly choose one point in signal sequence. "100" is chosen randomly
-%     for k = 1:length(real_phi)
-%         num = randi([1,length(sig)],1);
-%         spatial_circle_real_sig(i) = spatial_circle_real_sig(i) + (rx_real_1(i,k,num).*conj(rx_real_2(i,k,num)));
-%     end
+    %     for k = 1:length(real_phi)
+    %         num = randi([1,length(sig)],1);
+    %         spatial_circle_real_sig(i) = spatial_circle_real_sig(i) + (rx_real_1(i,k,num).*conj(rx_real_2(i,k,num)));
+    %     end
     num = randi([1,length(sig)],1);
     spatial_circle_real_sig(i) = sum(rx_real_1(i,:,num).*conj(rx_real_2(i,:,num)));
     
@@ -165,14 +183,14 @@ for i = 1:length(d)
     h2_cal = reshape(conj(h(i,2,:)),1,length(PAS));
     spatial_num(i,:) = sum(h1_cal.*h2_cal);
     
-%     Corr(i,:,:) = abs(corrcoef(squeeze(h(i,1,:)),squeeze(h(i,2,:))));
+    %     Corr(i,:,:) = abs(corrcoef(squeeze(h(i,1,:)),squeeze(h(i,2,:))));
     
-    %using traditional method(ideally equation) calculate
-    tau = zeros(1,length(ideal_phi));
-    for k = 1:length(ideal_phi)
-        tau(k) = d(i)*sin(ideal_phi(k)-phi_a)/c;
-        spatial(2,i) = spatial(2,i) + exp(-1i*2*pi*fc * (tau(k) + error_tk(k)) ).*PAS(k);
-    end
+%     %using traditional method(ideally equation) calculate
+%     tau = zeros(1,length(ideal_phi));
+%     for k = 1:length(ideal_phi)
+%         tau(k) = d(i)*sin(ideal_phi(k)-phi_a)/c;
+%         spatial(2,i) = spatial(2,i) + exp(-1i*2*pi*fc * (tau(k) + error_para(k)) ).*PAS(k);
+%     end
 end
 spatial_circle_sig = spatial_circle_sig./spatial_circle_sig(1);
 spatial_circle_real_sig = spatial_circle_real_sig./spatial_circle_real_sig(1);
@@ -185,7 +203,7 @@ stat = sum(abs((abs(spatial_circle_real_sig)-abs(spatial_circle_sig))))/length(s
 figure;
 %plot(d/lambda,abs(spatial(1,:)),'b');
 hold on;
-plot(d/lambda,abs(spatial(2,:)),'black');
+% plot(d/lambda,abs(spatial(2,:)),'black');
 plot(d/lambda,abs(spatial_num),'green');
 plot(d/lambda,abs(spatial_circle_real_sig),'red');
 plot(d/lambda,abs(spatial_circle_sig),'blue');
