@@ -96,13 +96,16 @@ rx_1 = repmat(1+1j,length(d),length(ideal_phi),length(sig));
 rx_2 = repmat(1+1j,length(d),length(ideal_phi),length(sig));
 rx_real_1 = repmat(1+1j,length(d),length(phi_sample),length(sig));
 rx_real_2 = repmat(1+1j,length(d),length(phi_sample),length(sig));
-sample_t = 2000;    %sample times at one angle
+sample_t = 1000;    %sample times at one angle
 error = zeros(1,sample_t);
 ang_error = zeros(1,sample_t);
 error_mean = zeros(length(d),length(phi_sample));
-rx_real_sample_1 = repmat(1+1j,length(d),length(phi_sample),length(sig));
-rx_real_sample_2 = repmat(1+1j,length(d),length(phi_sample),length(sig));
+% rx_real_sample_1 = repmat(1+1j,length(d),length(phi_sample),length(sig));
+% rx_real_sample_2 = repmat(1+1j,sample_t,length(sig));
+rx_real_sample_2 = repmat(1+1j,1,length(sig));
 [spatial_circle, spatial_circle_sig, spatial_circle_real_sig, spatial_circle_real] = deal(zeros(1,length(d)));
+ang_est = zeros(1,sample_t);
+ang_ori = zeros(length(d),length(phi_sample));
 ang_debug = zeros(length(phi_sample),2);
 for i = 1:length(d)
     %simulate spatial correlation using two antennas with circle
@@ -135,25 +138,28 @@ for i = 1:length(d)
         d_real_1(i,j) = sqrt( r^2 + new_d(i)^2 - 2*new_d(i)*r*cos( pi/2 - phi_real ) );
         d_real_2(i,j) = sqrt( r^2 + new_d(i)^2 - 2*new_d(i)*r*cos( phi_real + pi/2 ) );
         delta_real_d(i,j) = d_real_2(i,j) - d_real_1(i,j);
-        %                 %random error
-        %         % !!!   1/100 nanosecond...
-        %         error_tk = 1e-11*randn(1,1);
-        % %         error_tk = zeros(1,1);
         h_sig_real_1(i,j) = alpha*exp(1j*(beta(j))).*sqrt(real_PAS(j));
         h_sig_real_2(i,j) = alpha*exp(1j*(beta(j) + 2*pi*delta_real_d(i,j)/lambda)).*sqrt(real_PAS(j));
-        %         [ang1,ang2] = scale_angle(phi_real_1 + pi/2, phi_real_2 - pi/2 ); %ang is deg not rad
         [ang_P_1,ang_P_2] = generate_ang_of_pattern(d_real_1(i,j),d_real_2(i,j),new_d(i),r,(pi/2 - phi_real),(phi_real + pi/2));
 %         ang_debug(j,:) = [ang_P_1, ang_P_2];
         rx_real_1(i,j,:) = P_az_amp(ang_P_1)*(h_sig_real_1(i,j)*sig);
         rx_real_2(i,j,:) = P_az_amp(ang_P_2)*(h_sig_real_2(i,j)*sig);
+        sig_ori_fft = fft(rx_real_2(i,j,:),512);
+        [v_ori_max, pos_ori_max] = max(abs(sig_ori_fft));
+        ang_ori(i,j) = angle(sig_ori_fft(pos_ori_max));
         for k = 1:sample_t
             error(k) = error_para(1) + error_para(2)*randn(1,1);
-            rx_real_sample_1(i,j,:) = rx_real_1(i,j,:);
-            rx_real_sample_2(i,j,:) = rx_real_2(i,j,:)*exp(1i*2*pi*fc*error(k));
-            ang_error(k) = angle(rx_real_sample_2(i,j,25)) - angle(rx_real_2(i,j,25));
+            rx_real_sample_2 = rx_real_2(i,j,:)*exp(1i*2*pi*fc*error(k));
+            fft_temp = fft(rx_real_sample_2,512);
+            [v_max, pos_max] = max(abs(fft_temp));
+            ang_est(k) = angle(fft_temp(pos_max));
         end
-        error_mean(i,j) = mean(ang_error);
-        rx_real_2 = rx_real_2*exp(1i*-1*error_mean(i,j));
+        %         ang_est_mean = mean(ang_est);
+        %         [v_min,pos_min] = min(abs(ang_est - ang_est_mean));
+        %         rx_real_2(i,j,:) = rx_real_sample_2(pos_min,:)*exp(1i*-v_min);
+        [h_y,h_x] = hist(ang_est,50);
+        [vh_y,ph_y] = max(h_y);
+        rx_real_2(i,j,:) = rx_real_sample_2*exp(1i*-ang_est(k))*exp(1i*h_x(ph_y));
     end
     
     %randomly choose one point in signal sequence. "100" is chosen randomly

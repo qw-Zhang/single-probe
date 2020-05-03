@@ -91,7 +91,7 @@ rx_real_1 = repmat(1+1j,length(d),length(phi_sample),length(sig));
 rx_real_2 = repmat(1+1j,length(d),length(phi_sample),length(sig));
 [spatial_circle, spatial_circle_sig, spatial_circle_real_sig, spatial_circle_real] = deal(zeros(1,length(d)));
 ang_debug = zeros(length(phi_sample),2);
-
+sample_t = 1000;
 for i = 1:length(new_d)
     %simulate spatial correlation using two antennas with circle
     pos_ant_1 = [new_d(i)*cos(phi_a),new_d(i)*sin(phi_a)]; %(x,y)

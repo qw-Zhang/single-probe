@@ -31,9 +31,10 @@ for i = 15:15
     %uniform choose the location of probe
     phi_sample = linspace(-pi,pi,probe_pos(i));
     error_tk = 0*randn(1,100*length(phi_sample));
-    m = 0;v = 3*1e-11;
+    m = 0;v = 1*1e-10;
     error_para = [m,v];
-    [error_1(i), sim_sig, sim_theo] = spatial_correlation_simulation_v3(phi_sample,error_para,false);
+    [error_1(i), sim_sig, sim_theo] = spatial_correlation_simulation_v3(phi_sample,error_para,true);
+    %是否应该添加高斯噪声
     %     figure;hold on;
     %     plot(abs(sim_sig));
     %     plot(abs(sim_theo));
