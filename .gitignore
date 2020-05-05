@@ -19,6 +19,7 @@ octave-workspace
 #some document
 *.docx
 *.doc
+*.tmp
 
 #matlab data
 *.fig
