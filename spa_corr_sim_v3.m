@@ -6,7 +6,7 @@
 %   4. add signal transfer based method_3
 
 %this version change the way of error
-function [stat, spatial_circle_real_sig, spatial_num] = ...
+function [stat, spatial_circle_real_sig,spatial_circle_sig, spatial_num] = ...
     spa_corr_sim_v3(phi_sample,error_para,ant_able)
 fc = 2.535e9;
 c = 3e8;
@@ -196,18 +196,18 @@ spatial_circle_real_sig = spatial_circle_real_sig./spatial_circle_real_sig(1);
 %calculate the statistical error
 stat = sqrt(sum(power(abs(spatial_circle_real_sig)-abs(spatial_circle_sig),2))/length(spatial_circle_sig));
 
-%plot spatial correlation
-figure;
-%plot(d/lambda,abs(spatial(1,:)),'b');
-hold on;
-% plot(d/lambda,abs(spatial(2,:)),'black');
-plot(d/lambda,abs(spatial_num),'green');
-plot(d/lambda,abs(spatial_circle_real_sig),'red');
-plot(d/lambda,abs(spatial_circle_sig),'blue');
-% plot(d/lambda,Correaltion,'p');
-% axis([0 1 0 1]);
-xlabel('Antenna Separation in wavelength');
-ylabel('Spatial Correlation');
-grid on;
-% legend('theo equation','theo num','sim circle h','sim circle sig');
-legend('theo num','sim circle real sig','sim circle sig');
+% %plot spatial correlation
+% figure;
+% %plot(d/lambda,abs(spatial(1,:)),'b');
+% hold on;
+% % plot(d/lambda,abs(spatial(2,:)),'black');
+% plot(d/lambda,abs(spatial_num),'green');
+% plot(d/lambda,abs(spatial_circle_real_sig),'red');
+% plot(d/lambda,abs(spatial_circle_sig),'blue');
+% % plot(d/lambda,Correaltion,'p');
+% % axis([0 1 0 1]);
+% xlabel('Antenna Separation in wavelength');
+% ylabel('Spatial Correlation');
+% grid on;
+% % legend('theo equation','theo num','sim circle h','sim circle sig');
+% legend('theo num','sim circle real sig','sim circle sig');

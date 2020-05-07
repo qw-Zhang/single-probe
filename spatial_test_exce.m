@@ -25,43 +25,34 @@ s = rng;
 % figure;plot(error);
 
 %%
-probe_pos = linspace(8,36,15);  %8-36 locations of probe
+fc = 2.535e9;
+c = 3e8;
+lambda = c/fc;
+d = linspace(0,lambda,100);
+% probe_pos = linspace(8,36,15);  %8-36 locations of probe
+probe_pos = [8,16,36,72];
 error_1 = zeros(1,length(probe_pos));
-for i = 15:15
+
+for i = 4:4
     %uniform choose the location of probe
     phi_sample = linspace(-pi,pi,probe_pos(i));
     error_tk = 0*randn(1,100*length(phi_sample));
     m = 0;v = 1*1e-10;
     error_para = [m,v];
-    [error_1(i), sim_sig, sim_theo] = spatial_correlation_simulation_v3(phi_sample,error_para,true);
-    %是否应该添加高斯噪声
-    %     figure;hold on;
-    %     plot(abs(sim_sig));
-    %     plot(abs(sim_theo));
+    [error_1(i), sim_real_sig, sim_sig, sim_theo] = spa_corr_grid_simulation_v2(phi_sample,error_para,true);
+figure;
+hold on;
+% plot(d/lambda,abs(spatial(2,:)),'black');
+plot(d/lambda,abs(sim_theo),'green');
+plot(d/lambda,abs(sim_real_sig),'red');
+plot(d/lambda,abs(sim_sig),'blue');
+xlabel('Antenna Separation in wavelength');
+ylabel('Spatial Correlation');
+grid on;
+% legend('theo equation','theo num','sim circle h','sim circle sig');
+legend('theo num','sim circle real sig','sim circle sig' );
 end
+
 figure;plot(probe_pos, error_1);
-% 
-% %%
-% probe_pos = linspace(8,36,15);  %8-36 locastions of probe
-% error_1 = zeros(1,length(probe_pos));
-% for i = 1:length(probe_pos)
-%     %uniform choose the location of probe
-%     real_phi = linspace(-pi,pi,probe_pos(i));
-%     error_tk = 1e-11*randn(1,100*length(real_phi));
-%     [error_1(i), sim_sig, sim_theo] = spatial_correlation_simulation(real_phi,error_tk,false);
-%     %     figure;hold on;
-%     %     plot(abs(sim_sig));
-%     %     plot(abs(sim_theo));
-% end
-% figure;plot(probe_pos,error_1);
-% %%
-% temp = 10e-11*randn(1,10000);
-% pd = fitdist(temp','Normal');
-% figure;
-% hist_data =  hist(temp,50);
-% x = linspace(min(temp),max(temp),50);
-% n = normpdf(x, pd.mu, pd.sigma);
-% n = n*(max(hist_data)/max(n));
-% hold on;
-% plot(x,n);
-% bar(x,hist_data)
+xlabel('number of antenna positions');
+ylabel('RMSE');
