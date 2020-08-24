@@ -66,7 +66,7 @@ data = randi([0 P-1], frmLen, 1);
 modData = step(hMod, data); 
 % corr_test = zeros(length(delay_e),length(modData));
 for i = 1:length(delay_e)
-    tx(i,:) = delayseq(conv(modData, H_e(:,1)*sqrt(pow_e(i))), delay_e(i));
+    tx(i,:) = delayseq(conv(modData, H_e(:,i)*sqrt(pow_e(i))), delay_e(i));
     corr_test(i,:) = sqrt(pow_e(i))*delayseq(awgn(modData,0), delay_e(i));
 end
 % tx_sig = sum(tx,1);
