@@ -1,11 +1,11 @@
 clear;
 % test = load('..\DATA0115\test.dat');
 
-file_path ='D:\study\OTA\expriment_iecas\DATA\DATA0117';
+file_path ='D:\study\OTA\expriment_iecas\DATA\DATA0119';
 data_list=dir(strcat(file_path,'\*.dat'));
 len_dir = length(data_list);
 
-loc_start1 = zeros(len_dir,2);
+loc_start = zeros(len_dir,2);
 for j = 1:1:len_dir
     data_name = data_list(j).name;
     test=load(data_name);
@@ -29,6 +29,8 @@ for j = 1:1:len_dir
         [a,b] = xcorr(sig(i,:),tx);
         % figure;
         % plot(b,a);
-        loc_start1(j,i) = find_start(a) - 10;
+        loc_start(j,i) = find_start(a) - 10;
     end
 end
+
+%%

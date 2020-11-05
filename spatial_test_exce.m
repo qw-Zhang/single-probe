@@ -37,7 +37,7 @@ for i = 4:4
     %uniform choose the location of probe
     phi_sample = linspace(-pi,pi,probe_pos(i));
     error_tk = 0*randn(1,100*length(phi_sample));
-    m = 0;v = 1*1e-10;
+    m = 0;v = 0;
     error_para = [m,v];
     [error_1(i), sim_real_sig, sim_sig, sim_theo] = spa_corr_grid_simulation_v2(phi_sample,error_para,true);
 figure;
