@@ -15,8 +15,8 @@ erro_v_max=max(error_v);
 p = polyfit(x,error_v,1);
 x1 = 15:0.2:165;
 y1 = polyval(p,x1);
-figure;plot(x,error_v);
-hold on;plot(x1,y1);
+figure;plot(x,error_v,'LineWidth',2);
+hold on;plot(x1,y1,'LineWidth',2);
 xlabel('Vertical angle(deg)');ylabel('Angle error');
 legend('angle error','linear fitting');
 
@@ -34,5 +34,6 @@ y=0:1:360;
 error_h=h1-h2;
 error_h=interp1(h1,error_h,y,'linear');
 error_h_compensation=cat(1,y,error_h);
-erro_h_max=max(error_h)
-figure;plot(y,error_h)
+erro_h_max=max(error_h);
+figure;plot(y,error_h,'LineWidth',2);
+xlabel('Horizontal angle(deg)');ylabel('Angle error');

@@ -76,7 +76,7 @@ function [stat, spatial_circle_real_sig,spatial_circle_sig, spatial_num] = ...
     %simulate radius of circle
     r = 1;
     
-    t = linspace(0,1e-9,100);
+    t = linspace(0,1e-7,100);
     % doppler frequency fd = fc*v*cos(theta)/c
     v = 10; %m/s
     theta = 30*pi/180;
@@ -131,8 +131,9 @@ function [stat, spatial_circle_real_sig,spatial_circle_sig, spatial_num] = ...
             %%top = [2.5*lambda + r*cos(phi_real+pi/2),-1.2*lambda +
             %%r*sin(phi_real+pi/2)];     %this error is used to second
             %%postioner
-            error_top = randn*lambda;
-            top = [error_top + r*cos(phi_real+pi/2),randn*lambda + r*sin(phi_real+pi/2)];   %this errro is used to first positioner
+%             error_top = 0.3*randn*lambda;
+            error_top = 0;
+            top = [error_top + r*cos(phi_real+pi/2),error_top + r*sin(phi_real+pi/2)];   %this errro is used to first positioner
             pos_ant_1 = [x0 + new_d(i)*cos(phi_a),y0 + new_d(i)*sin(phi_a)]; %(x,y)
             pos_ant_2 = [x0 - new_d(i)*cos(phi_a),y0 - new_d(i)*sin(phi_a)];
             d_real_1(i,j) = sqrt((pos_ant_1(1) - top(1))^2 + (pos_ant_1(2) - top(2))^2);

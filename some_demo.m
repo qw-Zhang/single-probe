@@ -130,15 +130,17 @@ data_channel = load('data_channel.dat');
 data_source = load('data_source.dat');
 
 %%
-P = -70:2:-28;
+P = -64:2:-36;
 val_ce = zeros(1,length(P));
 val = zeros(1,length(P));
 
 BER_pos_ce = -50:2:-28;
-BER_val_ce = [1,0.747103,0.530077,0.267538,3.299E-10,3.96499E-13,5.97319E-21,5.16013E-32,7.11731E-47,3.27498E-72,1.54837E-60,3.47163E-95];
+BER_val_ce = [1,0.747103,0.530077,0.267538,3.299E-10,3.96499E-13,5.97319E-21,5.16013E-32];
+%   ,7.11731E-47,3.27498E-72,1.54837E-60,3.47163E-95
 
 BER_pos = -60:2:-28;
-BER_val = [1,0.743114,0.0877759,0.0208312,0.06721,3.45456e-32,1.59529e-83,1.28468e-71,5.817e-94,7.36226e-172,1.60695e-128,1.36727e-71,5.8976e-103,5.8976e-103,5.8976e-103,5.8976e-103,5.8976e-103];
+BER_val = [1,0.743114,0.0877759,0.0208312,0.06721,3.45456e-32,1.59529e-83,1.28468e-71,5.817e-94,7.36226e-172,1.60695e-128,1.36727e-71,5.8976e-103];
+%     ,5.8976e-103,5.8976e-103,5.8976e-103,5.8976e-103
 
 for i = 1:length(BER_val_ce)
     val_ce(P == BER_pos_ce(i)) = 1 - BER_val_ce(i);
@@ -146,25 +148,73 @@ end
 for i = 1:length(BER_val)
     val(P == BER_pos(i)) = 1 - BER_val(i);
 end
-figure;hold on;
-plot(P,val_ce,'Marker','*','LineWidth',2);
-plot(P,val,'Marker','o','LineWidth',2);
+figure;
+hold on;
+% plot(P,val_ce,'Marker','*','LineWidth',2);
+plot(P,val*100,'Marker','o','LineWidth',2);
+
+P_new = -65:0.1:-35;
+% val_ce_sp=spline(P,val_ce,P_new);
+% val_sp = spline(P,val,P_new);
+val_ce_sp=pchip(P,val_ce,P_new);
+val_sp = pchip(P,val,P_new);
+% figure; hold on;
+plot(P_new,val_sp*100,'LineWidth',3);
+% plot(P_new,val_ce_sp,'LineWidth',2);
+%%
+pf = polyfit(P,val_ce,1);
+val_ce_fit = polyval(pf,P_new);
 
 %%
 be = [0,0.00152721,(0.157298+0.328139+0.367368+0.26573)/4,(0.500396+0.498213+0.182822+0.083025)/4,(0.013991+0.175031+0.261477)/3,...
     0.275992,(0.303552+0.465756+0.214556+0.483242+0.517729)/5,(0.619461+0.700947+0.686722+0.655699+0.390936+0.672337)/6,...
     (0.6493+0.792758+0.83075)/3];
 
-ber_1 = [0,0.00152721,0.157298,0.182822,0.261477,0.275992,0.465756,(0.619461+0.700947+0.686722+0.655699+0.390936+0.672337)/6,...
+BER_ce = [0,0.00152721,0.157298,0.182822,0.261477,0.275992,0.465756,(0.619461+0.700947+0.686722+0.655699+0.390936+0.672337)/6,...
     (0.6493+0.792758+0.83075)/3];
-ber_1 = flip(ber_1);
-BER_pos_1 = -48:1:-40;
-P1 = -70:1:-28;
-val_1 = zeros(1,length(P1));
-for i = 1:length(ber_1)
-    val_1(P1 == BER_pos_1(i)) = 1 - ber_1(i);
-    pos_temp = find(P1 == BER_pos_1(i));
+BER_ce = flip(BER_ce);
+BER_pos_ce = -48:1:-40;
+P_1 = -65:1:-35;
+val_1 = zeros(1,length(P_1));
+for i = 1:length(BER_ce)
+    val_1(P_1 == BER_pos_ce(i)) = (1 - BER_ce(i));
+    pos_temp = find(P_1 == BER_pos_ce(i));
 end
-val_1(pos_temp:length(P1)) = 1;
-figure;
-plot(P1,val_1,'Marker','*','LineWidth',2);
+val_1(pos_temp:length(P_1)) = 1;
+% figure;
+% hold on;
+plot(P_1,val_1*100,'Marker','*','LineWidth',2);
+% P_new_1 = P_new = -70:0.1:-28;
+val_ce_sp = pchip(P_1,val_1,P_new);
+% val_ce_sp = makima(P1,val_1,P_new);
+plot(P_new,val_ce_sp*100,'LineWidth',3);
+%%
+
+load('BER_data.mat');
+P = -64:2:-36;
+val_ce = zeros(1,length(P));
+val = zeros(1,length(P));
+BER_pos = -60:2:-28;
+
+for i = 1:length(BER_val)
+    val(P == BER_pos(i)) = 1 - BER_val(i);
+end
+
+BER_pos_ce = -48:1:-40;
+P_1 = -65:1:-35;
+val_1 = zeros(1,length(P_1));
+for i = 1:length(BER_ce)
+    val_1(P_1 == BER_pos_ce(i)) = (1 - BER_ce(i));
+    pos_temp = find(P_1 == BER_pos_ce(i));
+end
+val_1(pos_temp:length(P_1)) = 1;
+
+P_new = -65:0.1:-35;
+val_sp = pchip(P,val,P_new);
+val_ce_sp = pchip(P_1,val_1,P_new);
+
+figure;hold on;
+plot(P,val*100,'Marker','o','LineWidth',2);
+plot(P_new,val_sp*100,'LineWidth',3);
+plot(P_1,val_1*100,'Marker','*','LineWidth',2);
+plot(P_new,val_ce_sp*100,'LineWidth',3);
