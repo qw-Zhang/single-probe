@@ -33,16 +33,16 @@ d = linspace(0,lambda,100);
 probe_pos = [8,16,36,72];
 error_1 = zeros(1,length(probe_pos));
 
-for i = 4:4
+for i = 1:1
     %uniform choose the location of probe
     phi_sample = linspace(-pi,pi,probe_pos(i));
     error_tk = 0*randn(1,100*length(phi_sample));
-    m = 0;v = 1e-10;
+    m = 0;v = 0;
     error_para = [m,v];
-    [error_1(i), sim_real_sig, sim_sig, sim_theo] = spa_corr_grid_simulation_v2(phi_sample,error_para,true);
+    [error_1(i), sim_real_sig, sim_sig, sim_theo,theo] = spa_corr_grid_simulation_v2(phi_sample,error_para,true);
 figure;
 hold on;
-% plot(d/lambda,abs(spatial(2,:)),'black');
+plot(d/lambda,abs(theo(2,:)),'black');
 plot(d/lambda,abs(sim_theo),'green');
 plot(d/lambda,abs(sim_real_sig),'red');
 plot(d/lambda,abs(sim_sig),'blue');

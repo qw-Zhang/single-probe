@@ -1,6 +1,6 @@
 %spa_corr_grid -> this version change the way of error
 %v2 -> add phase estimate
-function [stat, spatial_circle_real_sig,spatial_circle_sig, spatial_num] = ...
+function [stat, spatial_circle_real_sig,spatial_circle_sig, spatial_num,spatial] = ...
         spa_corr_grid_simulation_v2(phi_sample,error_para,ant_able)
     fc = 2.535e9;
     c = 3e8;
@@ -184,12 +184,13 @@ function [stat, spatial_circle_real_sig,spatial_circle_sig, spatial_num] = ...
         
         %     Corr(i,:,:) = abs(corrcoef(squeeze(h(i,1,:)),squeeze(h(i,2,:))));
         
-        %     %using traditional method(ideally equation) calculate
-        %     tau = zeros(1,length(ideal_phi));
-        %     for k = 1:length(ideal_phi)
-        %         tau(k) = d(i)*sin(ideal_phi(k)-phi_a)/c;
-        %         spatial(2,i) = spatial(2,i) + exp(-1i*2*pi*fc * (tau(k) + error_para(k)) ).*PAS(k);
-        %     end
+            %using traditional method(ideally equation) calculate
+            tau = zeros(1,length(ideal_phi));
+            for k = 1:length(ideal_phi)
+                tau(k) = d(i)*sin(ideal_phi(k)-phi_a)/c;
+%                 spatial(2,i) = spatial(2,i) + exp(-1i*2*pi*fc * (tau(k) + error_para(k)) ).*PAS(k);
+                spatial(2,i) = spatial(2,i) + exp(-1i*2*pi*fc * (tau(k)) ).*PAS(k);
+            end
     end
     spatial_circle_sig = spatial_circle_sig./spatial_circle_sig(1);
     spatial_circle_real_sig = spatial_circle_real_sig./spatial_circle_real_sig(1);
