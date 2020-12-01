@@ -1,6 +1,6 @@
 %spa_corr_grid -> this version change the way of error
 %v2 -> add phase estimate
-function [stat, spatial_circle_real_sig,spatial_circle_sig, spatial_num,spatial] = ...
+function [stat_MPAC,stat_SPAC, spatial_circle_real_sig_MPAC,spatial_circle_real_sig_SPAC,spatial_circle_sig, spatial_num,spatial] = ...
         spa_corr_grid_simulation_v2(phi_sample,error_para,ant_able)
     fc = 2.535e9;
     c = 3e8;
@@ -91,12 +91,14 @@ function [stat, spatial_circle_real_sig,spatial_circle_sig, spatial_num,spatial]
     rx_2 = repmat(1+1j,length(d),length(ideal_phi),length(sig));
     rx_real_1 = repmat(1+1j,length(d),length(phi_sample),length(sig));
     rx_real_2 = repmat(1+1j,length(d),length(phi_sample),length(sig));
-    [spatial_circle, spatial_circle_sig, spatial_circle_real_sig, spatial_circle_real] = deal(zeros(1,length(d)));
+    [spatial_circle, spatial_circle_sig, spatial_circle_real_sig_MPAC,...
+        spatial_circle_real_sig_SPAC, spatial_circle_real] = deal(zeros(1,length(d)));
     ang_debug = zeros(length(phi_sample),2);
     sample_t = 2000;
     [error,ang_est] = deal(zeros(1,sample_t));
     % snr = 20;
-    x0 = 0.5*lambda;y0 = -0.3*lambda;   %center coordinate of two ants
+%     x0 = 0.5*lambda;y0 = -0.3*lambda;   %center coordinate of two ants
+    x0 = 0;y0 = 0;
     
     for i = 1:length(new_d)
         %simulate spatial correlation using two antennas with circle
@@ -123,7 +125,7 @@ function [stat, spatial_circle_real_sig,spatial_circle_sig, spatial_num,spatial]
         spatial_circle_sig(i) = sum(rx_1(i,:,num).*conj(rx_2(i,:,num)));
         %     spatial_circle(i) = sum(h_sig_1(i,:).*conj(h_sig_2(i,:)));
         
-        %simulate spatial correlation using two antennas with circle,
+        %simulate spatial correlation using two antennas with circle(SPAC),
         %real phi and PAS
         
         for j = 1:length(phi_sample)
@@ -131,8 +133,8 @@ function [stat, spatial_circle_real_sig,spatial_circle_sig, spatial_num,spatial]
             %%top = [2.5*lambda + r*cos(phi_real+pi/2),-1.2*lambda +
             %%r*sin(phi_real+pi/2)];     %this error is used to second
             %%postioner
-%             error_top = 0.3*randn*lambda;
-            error_top = 0;
+            error_top = 0.3*randn*lambda;
+%             error_top = 0;
             top = [error_top + r*cos(phi_real+pi/2),error_top + r*sin(phi_real+pi/2)];   %this errro is used to first positioner
             pos_ant_1 = [x0 + new_d(i)*cos(phi_a),y0 + new_d(i)*sin(phi_a)]; %(x,y)
             pos_ant_2 = [x0 - new_d(i)*cos(phi_a),y0 - new_d(i)*sin(phi_a)];
@@ -167,10 +169,40 @@ function [stat, spatial_circle_real_sig,spatial_circle_sig, spatial_num,spatial]
         %         spatial_circle_real_sig(i) = spatial_circle_real_sig(i) + (rx_real_1(i,k,num).*conj(rx_real_2(i,k,num)));
         %     end
         num = randi([1,length(sig)],1);
-        spatial_circle_real_sig(i) = sum(rx_real_1(i,:,num).*conj(rx_real_2(i,:,num)));
+        spatial_circle_real_sig_SPAC(i) = sum(rx_real_1(i,:,num).*conj(rx_real_2(i,:,num)));
         
         %     spatial_circle_real_sig_w2(i) =
         spatial_circle_real(i) = sum(h_sig_real_1(i,:).*conj(h_sig_real_2(i,:)));
+        
+        %simulate spatial correlation using two antenna with circle(MPAC),
+        %real phi and PAS
+        for j = 1:length(phi_sample)
+            phi_real = (phi_sample(j) - phi_a);
+            %%postioner
+            error_top = 0.3*randn*lambda;
+%             error_top = 0;
+            top = [error_top + r*cos(phi_real+pi/2),error_top + r*sin(phi_real+pi/2)];   %this errro is used to first positioner
+            pos_ant_1 = [x0 + new_d(i)*cos(phi_a),y0 + new_d(i)*sin(phi_a)]; %(x,y)
+            pos_ant_2 = [x0 - new_d(i)*cos(phi_a),y0 - new_d(i)*sin(phi_a)];
+            d_real_1(i,j) = sqrt((pos_ant_1(1) - top(1))^2 + (pos_ant_1(2) - top(2))^2);
+            d_real_2(i,j) = sqrt((pos_ant_2(1) - top(1))^2 + (pos_ant_2(2) - top(2))^2);
+            delta_real_d(i,j) = d_real_2(i,j) - d_real_1(i,j);
+            
+            %error of time alignment on probe
+            error = error_para(1) + error_para(2)*randn(1,1);
+            
+            h_sig_real_1(i,j) = alpha*exp(1j*(beta(j) + 2*pi*fc*error)).*sqrt(real_PAS(j));
+            h_sig_real_2(i,j) = alpha*exp(1j*(beta(j) + 2*pi*delta_real_d(i,j)/lambda + 2*pi*fc*error)).*sqrt(real_PAS(j));
+            [ang_P_1,ang_P_2] = generate_ang_of_pattern_v2(top,pos_ant_1,pos_ant_2);
+            rx_real_1(i,j,:) = P_az_amp(ang_P_1)*(h_sig_real_1(i,j)*sig);
+            rx_real_2(i,j,:) = P_az_amp(ang_P_2)*(h_sig_real_2(i,j)*sig);
+        end
+        
+        %randomly choose one point in signal sequence. "100" is chosen randomly
+        num = randi([1,length(sig)],1);
+        spatial_circle_real_sig_MPAC(i) = sum(rx_real_1(i,:,num).*conj(rx_real_2(i,:,num)));
+        
+        
         
         beta1 = 0;
         %using numberical method calculate the spatial correlation
@@ -193,11 +225,13 @@ function [stat, spatial_circle_real_sig,spatial_circle_sig, spatial_num,spatial]
             end
     end
     spatial_circle_sig = spatial_circle_sig./spatial_circle_sig(1);
-    spatial_circle_real_sig = spatial_circle_real_sig./spatial_circle_real_sig(1);
+    spatial_circle_real_sig_SPAC = spatial_circle_real_sig_SPAC./spatial_circle_real_sig_SPAC(1);
+    spatial_circle_real_sig_MPAC = spatial_circle_real_sig_MPAC./spatial_circle_real_sig_MPAC(1);
     % Correaltion = squeeze(Corr(:,1,2));
     
     %calculate the statistical error
-    stat = sqrt(sum(power(abs(spatial_circle_real_sig)-abs(spatial_circle_sig),2))/length(spatial_circle_sig));
+    stat_SPAC = sqrt(sum(power(abs(spatial_circle_real_sig_SPAC)-abs(spatial_circle_sig),2))/length(spatial_circle_sig));
+    stat_MPAC = sqrt(sum(power(abs(spatial_circle_real_sig_MPAC)-abs(spatial_circle_sig),2))/length(spatial_circle_sig));
     
     % %plot spatial correlation
     % figure;

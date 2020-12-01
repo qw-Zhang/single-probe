@@ -55,7 +55,7 @@ real_PAS = zeros(1,length(real_phi));
 rate = length(ideal_phi)/length(real_phi);
 
 phi_a = 0*pi/180;
-scenario = 'macro';
+scenario = 'micro';
 
 switch scenario
     case 'test'
