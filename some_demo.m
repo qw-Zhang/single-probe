@@ -220,3 +220,13 @@ plot(P,val*100,'Marker','o','LineWidth',2);
 plot(P_new,val_sp*100,'LineWidth',3);
 plot(P_1,val_1*100,'Marker','*','LineWidth',2);
 plot(P_new,val_ce_sp*100,'LineWidth',3);
+%%
+% get line from .fig file
+ findall(gca,'type','line');
+lines = findall(gca,'type','line');
+th_ce_line = lines(4);
+th_ce_data = th_ce_line.YData;
+th_ce_line.XData;
+th_ce_data(1:2:14)
+hold on;plot(th_ce_data(1:2:14),'Marker','o')
+hold on;plot(th_ce_line.XData(1:2:14),th_ce_data(1:2:14),'Marker','o')

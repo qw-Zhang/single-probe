@@ -1,5 +1,9 @@
 scmp = scmparset;
-scmp.RandomSeed = 0;
+scmp.Scenario = 'urban_micro';
+% scmp.IntraClusterDsUsed='yes';
+scmp.FixedPdpUsed='yes';
+scmp.FixedAnglesUsed='yes';
+% scmp.RandomSeed = 12;
 scmp.NumTimeSamples = 1000;
 linkp = linkparset;
 antp = antparset;
@@ -22,87 +26,78 @@ H11 = reshape(H(1,1,:,:),scmp.NumPaths,scmp.NumTimeSamples);
 H22 = reshape(H(2,2,:,:),scmp.NumPaths,scmp.NumTimeSamples);
 
 %%
-% normal mimo  (u:element of BS,s:element of MS,n:path,m:subpath of path,():function,[]:value)
-% h_u,s,n(t,tau) = sqrt(p[n])*sum_m( sqrt(antenna_gain( aod[n,m] )) * sqrt(antenna_gain( aoa[n,m] ))
-%                                   * exp(1j*2*pi* doppler_fre[n,m] *t + phase_random[n,m]) * dirac( tau[n] ) )
-%
-% SPAC scheme     (u:element of BS,k:position of probe,n:path,m:subpath of path,():function,[]:value)
-% h_ota_u,k,n(t,tau) = sqrt(p[n])*sum_m( sqrt(antenna_gain( aod[n,m] ))
-%                                   * exp(1j*2*pi* doppler_fre[n,m] *t + phase_random[n,m,k]) )
-%                                   * dirac( tau[n] ) * sqrt(power_weight[k,n])
-% h_k(t,tau) = sum_u( sum_n( h_ota_u,k,n ) )
+Tx_num = 2; Rx_num = 2;
+N = 6; M = 20;
+T = linspace(0,1e-4,1e4);
+pow = db2mag([-3 -5.2 -4.7 -8.2 -12.1 15.5]);
+aoa_main = [65.7 45.6 143.2 32.5 -91.1 -19.2];
+aod_main = [82 80.5 79.6 98.6 102.1 107.1];
+aod_5deg=[0.2236 0.7064 1.2461 1.8578 2.5642 3.3986 4.4220 5.7403 7.5974 10.7753]; % [1, Table 5.2]
+        delta_nm_aod = [aod_5deg; -aod_5deg];
+        delta_nm_aod=delta_nm_aod(:);   % this (M x 1) vector is the same for all users and paths
+        delta_nm_aod=repmat(delta_nm_aod,1,N);  % a (M x N) matrix
+        
+mean_aods=aod_main;
+aods=repmat(mean_aods,M,1)+delta_nm_aod;
 
-ideal_phi = linspace(-pi,pi,3600);
-AOA = [0.7,-13.2,146.1,-30.5,-11.4,-1.1]*pi/180;AS = 35*pi/180;
-step_mov = floor([0.7,-13.2,146.1,-30.5,-11.4,-1.1]);
-pow = [-3,-4.3,-5.7,-7.3,-9,-11.4];
+aoa_35deg    = [1.5679 4.9447 8.7224 13.0045 17.9492 23.7899 30.9538 40.1824 53.1816 75.4274];      % [1, Table 5.2]
+delta_nm_aoa = [aoa_35deg; -aoa_35deg];
+delta_nm_aoa = delta_nm_aoa(:);       % these are the same for all users and paths
+delta_nm_aoa = repmat(delta_nm_aoa,1,N); % a (M x N) matrix
+mean_aoas=aoa_main;
+aoas=repmat(mean_aoas,M,1)+delta_nm_aoa;        
+        
+% delta_aod&aoa are ignored temporally
 
-%ideal scenario
-amp = 10.^(pow/10);
-A = amp./max(amp);
-PAS_norm = zeros(1,length(ideal_phi));
-for i = 1:length(ideal_phi)
-    % Lap distr
-    PAS_norm(i) = 1*(1/(2*AS))*(exp(-abs(ideal_phi(i)-0)/AS));
-end
-
-PAS_move_temp = zeros(length(step_mov),length(PAS_norm));
-for j = 1:length(step_mov)
-    PAS_norm = A(j)*PAS_norm;
-    if(step_mov(j) < 0)
-        PAS_move_temp(j,:) = [PAS_norm(abs(step_mov(j))+1:length(PAS_norm)),PAS_norm(1:abs(step_mov(j)))];
-    else
-        PAS_move_temp(j,:) = [PAS_norm(length(PAS_norm) - abs(step_mov(j)) + 1:length(PAS_norm))...
-            ,PAS_norm(1:length(PAS_norm) - abs(step_mov(j)))];
-    end
-end
-PAS = sum(PAS_move_temp,1);
-%using for normalized PAS
-sum_PAS = sum(PAS);
-PAS = PAS/sum_PAS;
-phi_sample = ones(1,36);
-rate = length(ideal_phi) / length(phi_sample);
-for i = 1:length(phi_sample)
-    real_PAS(i) = sum(PAS(rate*(i-1)+1:rate*i))/rate;
-    phi_sample(i) = sum(ideal_phi(rate*(i-1)+1:rate*i))/rate;
-end
-real_sum_PAS = sum(real_PAS);
-real_PAS = real_PAS/real_sum_PAS;
-
-
-time = 0:1e-8:1e-6;
-tau = round(delay*1e8);
-phase_random = -pi + 2*pi*rand(6,20,36);
 c = 3e8;
-fre = 2e9;
-lambda = c / fre;
-doppler_fre = cos(deg2rad( reshape(aoa,6,20) )) * 10 / lambda; %   speed = 10
-temp = 0;
-power_weight = ones(36,6);
-hota_ukn = zeros(length(time),6,2,36);
-t = 2;
-% for t = 1:length(time)
-    for u = 1:2
-        ant_gain = ones(1,360);
-        for pos = 1:36
-            for path = 1:6
-                for m = 1:20
-                    temp = temp + sqrt(ant_gain(180+round(aod(1,path,m)))) * exp(1i*(2*pi*doppler_fre(path,m)*time(t) + phase_random(path,m,pos)));
+fc = 2.45e9;
+lambda = c/fc;
+
+vec_BS = reshape([[0 0], [0 lambda/2]],2,2);
+vec_MS = reshape([[0 0], [0 lambda/2]],2,2);
+
+% AS_AOA = 35*180/pi; AOA = aoa_main(n)*180/pi;
+% PAS_AOA =@(x) (1/(2*AS_AOA))*(exp(-abs(x-AOA)/AS_AOA));
+% 
+% AS_AOD = 2*180/pi; AOD = aod_main(n)*180/pi;
+% PAS_AOD =@(x) (1/(2*AS_AOD))*(exp(-abs(x-AOD)/AS_AOD));
+
+pattern_BS = @(x) (1);
+pattern_MS = @(x) (1);
+
+for u = 1:1
+    vec_u = vec_BS(u,:);
+    for s = 1:1
+        vec_s = vec_MS(s,:);
+        for n = 1:1
+            for t = 1:length(T)
+                for m = 1:M % M = 20
+                    AoD = aods(m,n);AoA = aoas(m,n);
+                    [x,y] = unit(AoD);
+                    vec_AoD = [x,y];
+                    [x,y] = unit(AoA);
+                    vec_AoA = [x,y];
+                    temp = sum( sqrt(pattern_BS(AoD))*sqrt(pattern_MS(AoA)) * ...
+                        exp(1i*2*pi/lambda*dot(vec_AoD,(vec_u))) *...
+                        exp(1i*2*pi/lambda*dot(vec_AoA,(vec_s))) *...
+                        exp(1i*2*pi*dopp(AoA,fc)*t + randn(1) ));
                 end
-                hota_ukn(t,path,u,pos) = db2mag(-3.04)*sqrt(powers(path)) * temp * sqrt(power_weight(pos,path))./20;
+                h(u,s,n,t) = sqrt(pow(n)) * temp;
             end
         end
     end
-% end
-channel = zeros(36,6,1000); %  channel matrix
-
-hh = reshape(hota_ukn(2,:,:,:),6,2,36);
-hh1 = reshape(sum(hh,2),6,36);
-hh2 = hh1.*sqrt(real_PAS);
+end
 
 
-for pos = 1:36
-for tt = 1:length(tau)
-    delayseq
-    channel(pos,tt,:) = 
-% delayseq slove 'n'
+
+function [x,y] = unit(ang)
+    x = cos(deg2rad(ang));
+    y = sin(deg2rad(ang));
+end
+
+function fd = dopp(ang_v,fc)
+    c = 3e8;
+    lambda = c/fc;
+    v = 30*1000/(60*60);    % 30km/hour
+    fd = v*cos(deg2rad(ang_v-120))/lambda;
+end

@@ -33,11 +33,10 @@ d = linspace(0,lambda,100);
 probe_pos = [8,16,36,72];
 error_MPAC = zeros(1,length(probe_pos));
 error_SPAC = zeros(1,length(probe_pos));
-for i = 1:1
+for i = 1:2
     %uniform choose the location of probe
     phi_sample = linspace(-pi,pi,probe_pos(i));
-    error_tk = 0*randn(1,100*length(phi_sample));
-    m = 0;v = 1e-10;
+    m = 0;v = 1e-11;
     error_para = [m,v];
     [error_MPAC(i),error_SPAC(i), sim_real_sig_MPAC,sim_real_sig_SPAC, sim_sig, sim_theo,theo] = ...
         spa_corr_grid_simulation_v2(phi_sample,error_para,true);
