@@ -17,7 +17,7 @@ function spatial_output = spa_corr_grid_simulation_mpac_v2(phi_sample,error_para
     
     %scenario parameters
     phi_a = 0*pi/180;
-    scenario = 'test';
+    scenario = 'micro';
     switch scenario
         case 'test'
             AOA = -22.5*pi/180;AS = 35*pi/180;
@@ -45,10 +45,11 @@ function spatial_output = spa_corr_grid_simulation_mpac_v2(phi_sample,error_para
     A = amp./max(amp);
 %     PAS =@(x) (1/(2*AS))*(A(1)*exp(-abs(x-AOA(1))/AS)+A(2)*exp(-abs(x-AOA(2))/AS)+A(3)*exp(-abs(x-AOA(3))/AS)+...
 %         A(4)*exp(-abs(x-AOA(4))/AS)+A(5)*exp(-abs(x-AOA(5))/AS)+A(6)*exp(-abs(x-AOA(6))/AS));
+    PAS_fun = @(x) (1/(2*AS))*sum( A.*exp(-abs(x-AOA)/AS) );
     
-    PAS1 = @(x) (1/(2*AS))*sum( A.*exp(-abs(x-AOA)/AS) );
+    PAS = generate_PAS1(PAS_fun,ideal_phi);
     
-    PAS = generate_PAS(ideal_phi,pow,AS,step_mov);
+%     PAS = generate_PAS(ideal_phi,pow,AS,step_mov);
     
     
     % real probe scenario
@@ -99,7 +100,6 @@ function spatial_output = spa_corr_grid_simulation_mpac_v2(phi_sample,error_para
     rx_real_2 = repmat(1+1j,length(d),length(phi_sample),length(sig));
     [spatial_circle, spatial_circle_sig, spatial_circle_real_sig_MPAC,...
         spatial_circle_real] = deal(zeros(1,length(d)));
-    ang_debug = zeros(length(phi_sample),2);
 
     % snr = 20;
 %     x0 = 0.5*lambda;y0 = -0.3*lambda;   %center coordinate of two ants

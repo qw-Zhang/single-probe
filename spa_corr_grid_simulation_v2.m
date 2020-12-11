@@ -42,8 +42,14 @@ function [stat_MPAC,stat_SPAC, spatial_circle_real_sig_MPAC,spatial_circle_real_
             quit;
     end
     
-    PAS = generate_PAS(ideal_phi,pow,AS,step_mov);
+        amp = 10.^(pow/10);
+    A = amp./max(amp);
+%     PAS =@(x) (1/(2*AS))*(A(1)*exp(-abs(x-AOA(1))/AS)+A(2)*exp(-abs(x-AOA(2))/AS)+A(3)*exp(-abs(x-AOA(3))/AS)+...
+%         A(4)*exp(-abs(x-AOA(4))/AS)+A(5)*exp(-abs(x-AOA(5))/AS)+A(6)*exp(-abs(x-AOA(6))/AS));
+    PAS_fun = @(x) (1/(2*AS))*sum( A.*exp(-abs(x-AOA)/AS) );
     
+%     PAS = generate_PAS(ideal_phi,pow,AS,step_mov);
+    PAS = generate_PAS1(PAS_fun,ideal_phi);
     
     % real probe scenario
     for i = 1:length(phi_sample)
