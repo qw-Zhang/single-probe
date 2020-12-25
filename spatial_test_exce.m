@@ -33,21 +33,25 @@ d = linspace(0,lambda,100);
 probe_pos = [8,16,36,72];
 error_MPAC = zeros(1,length(probe_pos));
 error_SPAC = zeros(1,length(probe_pos));
-for i = 1:1
+for i = 4:4
     %uniform choose the location of probe
     phi_sample = linspace(-pi,pi,probe_pos(i));
-    m = 0;v = 1e-11;
+    m = 0;v = 0;
     error_para = [m,v];
-    [error_MPAC(i),error_SPAC(i), sim_real_sig_MPAC,sim_real_sig_SPAC, sim_sig, sim_theo,theo] = ...
-        spa_corr_grid_simulation_v2(phi_sample,error_para,true);
-%     mpac_out = spa_corr_grid_simulation_mpac_v2(phi_sample,error_para,true);
+%     [error_MPAC(i),error_SPAC(i), sim_real_sig_MPAC,sim_real_sig_SPAC, sim_sig, sim_theo,theo] = ...
+%         spa_corr_grid_simulation_v2(phi_sample,error_para,true);
+    mpac_out = spa_corr_grid_simulation_mpac_v3(phi_sample,error_para,false);
+    error_MPAC(i) = mpac_out.stat;
+    theo = mpac_out.theory;
+    sim_theo = mpac_out.spatial_num;
+    sim_real_sig_MPAC = mpac_out.spatial_circle_real;
     figure;
     hold on;
-    plot(d/lambda,abs(theo(2,:)),'black');
+    plot(d/lambda,abs(theo),'black');
     plot(d/lambda,abs(sim_theo),'green');
     plot(d/lambda,abs(sim_real_sig_MPAC),'red');
-    plot(d/lambda,abs(sim_real_sig_SPAC),'magenta');
-    plot(d/lambda,abs(sim_sig),'blue');
+%     plot(d/lambda,abs(sim_real_sig_SPAC),'magenta');
+%     plot(d/lambda,abs(sim_sig),'blue');
     xlabel('Antenna Separation in wavelength');
     ylabel('Spatial Correlation');
     grid on;

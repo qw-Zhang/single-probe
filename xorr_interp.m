@@ -46,7 +46,7 @@ new_data_re = zeros(6,length(eval(var_name(1,:))));
 r = zeros(7,2*length(eval(var_name(1,:)))-1);
 com_tx = Txdata(1,:) + 1i*Txdata(2,:);
 % w = hamming(length(data110dbm(1,:)));
-antenna = 2;correct = 1;
+antenna = 1;correct = 1;
 figure;
 for i = 1:6
     temp = eval(var_name(i,:));
@@ -65,7 +65,7 @@ for i = 1:6
     end
     
     %         new_data(i,:) =( temp(3,:) + 1i*temp(4,:));
-    [res_cor_com_1(i,:),lags] = xcorr(new_data_1(i,:),com_tx);
+    [res_cor_com_1(i,:),lags] = xcorr(new_data(i,:),com_tx);
     %     [res_cor_com(i,:),lags] = xcorr(new_data(i,:),com_tx);
     if(i == 1)
         normal = max(abs(res_cor_com_1(i,:)));

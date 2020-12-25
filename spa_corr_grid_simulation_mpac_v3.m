@@ -1,10 +1,10 @@
 %spa_corr_grid -> this version change the way of error
 %v2 -> add phase estimate
-function spatial_output = spa_corr_grid_simulation_mpac_v2(phi_sample,error_para,ant_able)
+function spatial_output = spa_corr_grid_simulation_mpac_v3(phi_sample,error_para,ant_able)
     fc = 2.45e9;
     c = 3e8;
     lambda = c/fc;
-    new_d = linspace(0,0.5*lambda,100);
+    new_d = linspace(0,lambda,100);
     d = linspace(0,lambda,length(new_d));
     ideal_phi = linspace(-pi,pi,3600);
     
@@ -78,12 +78,13 @@ function spatial_output = spa_corr_grid_simulation_mpac_v2(phi_sample,error_para
     % snr = 20;
 %     x0 = 0.5*lambda;y0 = -0.3*lambda;   %center coordinate of two ants
     x0 = 0;y0 = 0;
+    pos_ant_1 = [-new_d(length(new_d))*cos(phi_a), ...
+                 -new_d(length(new_d))*sin(phi_a)]; %(x,y)
     
     for i = 1:length(new_d)
         %simulate spatial correlation using two antennas with circle
-        pos_ant_1 = [new_d(i)*cos(phi_a),new_d(i)*sin(phi_a)]; %(x,y)
-        pos_ant_2 = [-new_d(i)*cos(phi_a),-new_d(i)*sin(phi_a)];
-        
+%         pos_ant_1 = [new_d(i)*cos(phi_a),new_d(i)*sin(phi_a)]; %(x,y)
+        pos_ant_2 = pos_ant_1 + [new_d(i)*cos(phi_a),new_d(i)*sin(phi_a)];
         ang_P = zeros(2,length(ideal_phi));
         for j = 1:length(ideal_phi)
             phi = ideal_phi(j) - phi_a;
@@ -93,8 +94,8 @@ function spatial_output = spa_corr_grid_simulation_mpac_v2(phi_sample,error_para
             d_2(i,j) = sqrt((pos_ant_2(1) - top(1))^2 + (pos_ant_2(2) - top(2))^2);
             [ang_P(1,j),ang_P(2,j)] = generate_ang_of_pattern_v2(top,pos_ant_1,pos_ant_2);
             delta_d(i,j) = d_2(i,j) - d_1(i,j);
-            h_sig_1(i,j) = alpha*exp(1j*(2*pi*(dot(pos_ant_1,top))/lambda)).*sqrt(ideal_PAS(j));
-            h_sig_2(i,j) = alpha*exp(1j*(2*pi*(dot(pos_ant_2,top))/lambda)).*sqrt(ideal_PAS(j));
+            h_sig_1(i,j) = exp(1j*(2*pi*(dot(pos_ant_1,top))/lambda)).*sqrt(ideal_PAS(j));
+            h_sig_2(i,j) = exp(1j*(2*pi*(dot(pos_ant_2,top))/lambda)).*sqrt(ideal_PAS(j));
 %             [ang_P_1,ang_P_2] = generate_ang_of_pattern(d_1(i,j),d_2(i,j),new_d(i),r,(pi/2 - phi),(phi + pi/2));
             rx_1(i,j,:) = P_az_amp(ang_P(1,j))*h_sig_1(i,j)*sig;
             rx_2(i,j,:) = P_az_amp(ang_P(2,j))*h_sig_2(i,j)*sig;
@@ -102,6 +103,7 @@ function spatial_output = spa_corr_grid_simulation_mpac_v2(phi_sample,error_para
         
         rx_1_sum(i,:) = reshape(sum(rx_1(i,:,:),2),1,length(sig));
         rx_2_sum(i,:) = reshape(sum(rx_2(i,:,:),2),1,length(sig));
+        
         % Corr(:,:,i) = abs(corrcoef(h_new_1(i,:),h_new_2(i,:)));
         % spatial_circle_sig(i) = sum(r1(i,:).*conj(r2(i,:)))/sum(r1(1,:).*conj(r2(1,:)));
         
@@ -118,7 +120,7 @@ function spatial_output = spa_corr_grid_simulation_mpac_v2(phi_sample,error_para
             error_top = 0.03*randn*lambda;
 %             error_top = 0;
             top = [error_top + r*cos(phi_real+pi/2),error_top + r*sin(phi_real+pi/2)];   %this errro is used to first positioner
-            pos_ant_1 = [x0 + new_d(i)*cos(phi_a),y0 + new_d(i)*sin(phi_a)]; %(x,y)
+%             pos_ant_1 = [x0 + new_d(i)*cos(phi_a),y0 + new_d(i)*sin(phi_a)]; %(x,y)
             pos_ant_2 = [x0 - new_d(i)*cos(phi_a),y0 - new_d(i)*sin(phi_a)];
             d_real_1(i,j) = sqrt((pos_ant_1(1) - top(1))^2 + (pos_ant_1(2) - top(2))^2);
             d_real_2(i,j) = sqrt((pos_ant_2(1) - top(1))^2 + (pos_ant_2(2) - top(2))^2);

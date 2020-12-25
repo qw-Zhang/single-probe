@@ -18,7 +18,7 @@ antennaObject.Load.Frequency = fc;
 % Define plot frequency 
 plotFrequency = fc;
 % Define frequency range 
-freqRange = (2281.5:25.35:2788.5) * 1e6;
+% freqRange = (2281.5:25.35:2788.5) * 1e6;
 % % show for dipole
 % figure;
 % show(antennaObject) 
