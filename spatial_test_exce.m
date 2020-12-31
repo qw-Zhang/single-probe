@@ -1,55 +1,39 @@
 %360degree
-clear;clc;
-s = rng;
-% %%
-% %fix probe positions and error
-% len = zeros(1,100);
-% error_tmp = 1e-11*randn(1,100*length(len));
-% time = linspace(1,20,20);
-% error = zeros(1,length(time));
-% real_phi = linspace(-pi,pi,20);
-% 
-% for i = 1:length(time)
-%     %uniform choose the location of probe
-%     error_tk = time(i)*error_tmp;
-%     for j = 1:100
-%         tmp = error_tk(length(real_phi)*(j-1)+1:length(real_phi)*j);
-%         error_range(i,j) = max(tmp) - min(tmp);
-%         error_mean(i) = mean(error_range(i,:));
-%     end
-%     [error(i), sim_sig, sim_theo] = spatial_correlation_simulation(real_phi,error_tk,false);
-%     %     figure;hold on;
-%     %     plot(abs(sim_sig));
-%     %     plot(abs(sim_theo));
-% end
-% figure;plot(error);
+% clear;clc;
+% s = rng;
 
-%%
-fc = 2.535e9;
+fc = 2.45e9;
 c = 3e8;
 lambda = c/fc;
-d = linspace(0,lambda,100);
+d = linspace(0,2*lambda,100);
+d_sum = linspace(0,2*lambda,50);
 % probe_pos = linspace(8,36,15);  %8-36 locations of probe
 probe_pos = [8,16,36,72];
 error_MPAC = zeros(1,length(probe_pos));
 error_SPAC = zeros(1,length(probe_pos));
-for i = 4:4
+phi_a = [0 30 90 120 150]*pi/180;
+for j = 1:1
+for i = 1:1
     %uniform choose the location of probe
     phi_sample = linspace(-pi,pi,probe_pos(i));
     m = 0;v = 0;
     error_para = [m,v];
 %     [error_MPAC(i),error_SPAC(i), sim_real_sig_MPAC,sim_real_sig_SPAC, sim_sig, sim_theo,theo] = ...
 %         spa_corr_grid_simulation_v2(phi_sample,error_para,true);
-    mpac_out = spa_corr_grid_simulation_mpac_v3(phi_sample,error_para,false);
+    % how to implement scme CE on spatial correlation
+    mpac_out = spa_corr_grid_simulation_mpac_v4(phi_sample,phi_a(j),error_para,false);
     error_MPAC(i) = mpac_out.stat;
-    theo = mpac_out.theory;
-    sim_theo = mpac_out.spatial_num;
-    sim_real_sig_MPAC = mpac_out.spatial_circle_real;
+%     theo = mpac_out.theory;
+%     sim_theo = mpac_out.spatial_num;
+%     sim_real_sig_MPAC = mpac_out.spatial_circle_real;
+%     sim_ideal_sig_MPAC = mpac_out.spatial_circle;
     figure;
     hold on;
-    plot(d/lambda,abs(theo),'black');
-    plot(d/lambda,abs(sim_theo),'green');
-    plot(d/lambda,abs(sim_real_sig_MPAC),'red');
+    plot(d/lambda,abs(mpac_out.theory),'black');
+    plot(d/lambda,abs(mpac_out.spatial_num),'green');
+    plot(d_sum/lambda,abs(mpac_out.spatial_circle_real),'red');
+    plot(d_sum/lambda,abs(mpac_out.spatial_sum),'magenta');
+    axis([0 2 0 1]);
 %     plot(d/lambda,abs(sim_real_sig_SPAC),'magenta');
 %     plot(d/lambda,abs(sim_sig),'blue');
     xlabel('Antenna Separation in wavelength');
@@ -58,7 +42,8 @@ for i = 4:4
     % legend('theo equation','theo num','sim circle h','sim circle sig');
     legend('Theory','Simulation with error position of antenna','Simulation with antenna pattern' );
 end
-
-figure;plot(probe_pos, error_SPAC);
-xlabel('number of antenna positions');
-ylabel('RMSE');
+end
+% 
+% figure;plot(probe_pos, error_SPAC);
+% xlabel('number of antenna positions');
+% ylabel('RMSE');

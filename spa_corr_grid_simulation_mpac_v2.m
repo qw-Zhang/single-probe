@@ -1,10 +1,10 @@
 %spa_corr_grid -> this version change the way of error
 %v2 -> add phase estimate
-function spatial_output = spa_corr_grid_simulation_mpac_v2(phi_sample,error_para,ant_able)
+function spatial_output = spa_corr_grid_simulation_mpac_v2(phi_sample,phi_a,error_para,ant_able)
     fc = 2.45e9;
     c = 3e8;
     lambda = c/fc;
-    new_d = linspace(0,0.5*lambda,100);
+    new_d = linspace(0,lambda,100);
     d = linspace(0,lambda,length(new_d));
     ideal_phi = linspace(-pi,pi,3600);
     
@@ -16,7 +16,7 @@ function spatial_output = spa_corr_grid_simulation_mpac_v2(phi_sample,error_para
     % rate = length(ideal_phi)/length(real_phi);
     
     %scenario parameters
-    phi_a = 0*pi/180;
+%     phi_a = 0*pi/180;
     % choose one scenario from "test" "micro" "macro"
     scenario = 'micro';
     ideal_PAS = generate_PAS1(ideal_phi,scenario);
@@ -86,7 +86,7 @@ function spatial_output = spa_corr_grid_simulation_mpac_v2(phi_sample,error_para
         
         ang_P = zeros(2,length(ideal_phi));
         for j = 1:length(ideal_phi)
-            phi = ideal_phi(j) - phi_a;
+            phi = ideal_phi(j) + pi/2;
 %             top = [r*cos(phi+pi/2),r*sin(phi+pi/2)];
             top = [r*cos(phi),r*sin(phi)];
             d_1(i,j) = sqrt((pos_ant_1(1) - top(1))^2 + (pos_ant_1(2) - top(2))^2);
@@ -113,11 +113,11 @@ function spatial_output = spa_corr_grid_simulation_mpac_v2(phi_sample,error_para
         %simulate spatial correlation using two antenna with circle(MPAC),
         %real phi and PAS
         for j = 1:length(phi_sample)
-            phi_real = (phi_sample(j) - phi_a);
+            phi_real = phi_sample(j) + pi/2;
             %%postioner
             error_top = 0.03*randn*lambda;
 %             error_top = 0;
-            top = [error_top + r*cos(phi_real+pi/2),error_top + r*sin(phi_real+pi/2)];   %this errro is used to first positioner
+            top = [error_top + r*cos(phi_real),error_top + r*sin(phi_real)];   %this errro is used to first positioner
             pos_ant_1 = [x0 + new_d(i)*cos(phi_a),y0 + new_d(i)*sin(phi_a)]; %(x,y)
             pos_ant_2 = [x0 - new_d(i)*cos(phi_a),y0 - new_d(i)*sin(phi_a)];
             d_real_1(i,j) = sqrt((pos_ant_1(1) - top(1))^2 + (pos_ant_1(2) - top(2))^2);
@@ -161,13 +161,14 @@ function spatial_output = spa_corr_grid_simulation_mpac_v2(phi_sample,error_para
         
         %     Corr(i,:,:) = abs(corrcoef(squeeze(h(i,1,:)),squeeze(h(i,2,:))));
         
-            %using traditional method(ideally equation) calculate
-            tau = zeros(1,length(ideal_phi));
-            for k = 1:length(ideal_phi)
-                tau(k) = d(i)*sin(ideal_phi(k)-phi_a)/c;
-%                 spatial(2,i) = spatial(2,i) + exp(-1i*2*pi*fc * (tau(k) + error_para(k)) ).*PAS(k);
-                spatial(i) = spatial(i) + exp(-1i*2*pi*fc * tau(k) ).*(ideal_PAS(k));
-            end
+        %using traditional method(ideally equation) calculate
+        tau = zeros(1,length(ideal_phi));
+        for k = 1:length(ideal_phi)
+            tau(k) = d(i)*sin(ideal_phi(k)-phi_a)/c;
+            %                 spatial(2,i) = spatial(2,i) + exp(-1i*2*pi*fc * (tau(k) + error_para(k)) ).*PAS(k);
+            spatial(i) = spatial(i) + exp(-1i*2*pi*fc * tau(k) ).*(ideal_PAS(k));
+        end
+        ss(i) = mean(rx_real_1_sum(i,:).*conj(rx_real_2_sum(i,:)));
     end
     spatial = spatial./spatial(1);
     spatial_circle_sig = spatial_circle_sig./spatial_circle_sig(1);
@@ -176,12 +177,13 @@ function spatial_output = spa_corr_grid_simulation_mpac_v2(phi_sample,error_para
     
     %calculate the statistical error
     stat_MPAC = sqrt(sum(power(abs(spatial_circle_real_sig_MPAC)-abs(spatial_circle_sig),2))/length(spatial_circle_sig));
-    
+    ss = ss./ss(1);
 %     output structure
 spatial_output.stat = stat_MPAC;
 spatial_output.spatial_circle_real = spatial_circle_real_sig_MPAC;
 spatial_output.spatial_circle = spatial_circle_sig;
 spatial_output.spatial_num = spatial_num;
 spatial_output.theory = spatial;
+spatial_output.spatial_sum = ss;
 
 % different strength of signal to control probe power
