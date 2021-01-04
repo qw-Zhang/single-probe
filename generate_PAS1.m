@@ -4,6 +4,10 @@ function PAS = generate_PAS1(ideal_phi,scenario)
         case 'test'
             AOA = -22.5*pi/180;AS = 35*pi/180;
             pow = 0;
+        
+        case 'single'
+            AOA = 0*pi/180;AS = 35*pi/180;
+            pow = 0;
             
         case 'micro'
             % % SCME urban micro-cell
