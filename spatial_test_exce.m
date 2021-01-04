@@ -22,7 +22,7 @@ for j = 1:1
         %     [error_MPAC(i),error_SPAC(i), sim_real_sig_MPAC,sim_real_sig_SPAC, sim_sig, sim_theo,theo] = ...
         %         spa_corr_grid_simulation_v2(phi_sample,error_para,true);
         % how to implement scme CE on spatial correlation
-        mpac_out = spa_corr_grid_simulation_mpac_v4(phi_sample,phi_a(j),d,error_para,false);
+        mpac_out = spa_corr_grid_simulation_mpac_v2_1(phi_sample,phi_a(j),d,error_para,false);
         error_MPAC(i) = mpac_out.stat;
         %     theo = mpac_out.theory;
         %     sim_theo = mpac_out.spatial_num;
