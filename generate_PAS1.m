@@ -1,5 +1,5 @@
 % generate PAS data by function:PAS_fun
-function PAS = generate_PAS1(ideal_phi,scenario)
+function [PAS, PAS_para] = generate_PAS1(ideal_phi,scenario)
     switch scenario
         case 'test'
             AOA = -22.5*pi/180;AS = 35*pi/180;
@@ -34,4 +34,6 @@ function PAS = generate_PAS1(ideal_phi,scenario)
     end
     sumPAS = sum(PAS);
     PAS = PAS./sumPAS;
+    PAS_para.AOA = AOA;
+    PAS_para.AS = AS;
 end

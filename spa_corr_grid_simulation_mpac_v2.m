@@ -1,11 +1,13 @@
 %spa_corr_grid -> this version change the way of error
 %v2 -> add phase estimate
-function spatial_output = spa_corr_grid_simulation_mpac_v2(phi_sample,phi_a,error_para,ant_able)
+function spatial_output = spa_corr_grid_simulation_mpac_v2(phi_sample,phi_a,d,error_para,ant_able)
     fc = 2.45e9;
     c = 3e8;
     lambda = c/fc;
-    new_d = linspace(0,lambda,100);
-    d = linspace(0,lambda,length(new_d));
+%     new_d = linspace(0,lambda,100);
+%     d = linspace(0,lambda,length(new_d));
+    new_d = linspace(0,d(length(d))/2,length(d));
+%     d = linspace(0,new_d(length(new_d)),length(new_d));
     ideal_phi = linspace(-pi,pi,3600);
     
     % real_phi as a parameter
