@@ -1,6 +1,6 @@
 % spac_corr_grid_simulation_mpac_v3 -> two antennas change to single ref ant
 % single-cluster model
-function spatial_output = spa_corr_grid_simulation_mpac_v3_1(phi_sample,phi_a,d,error_para,ant_able)
+function spatial_output = spa_corr_grid_mpac_v3_1(phi_sample,phi_a,d,error_para,ant_able)
     fc = 2.45e9;
     c = 3e8;
     lambda = c/fc;

@@ -2,7 +2,7 @@
 %v2 -> add phase estimate
 %v2.1 add simulation h(channel parameter), and simulation the spatial
 %correlation without signal, just using channel itself.
-function spatial_output = spa_corr_grid_simulation_mpac_v2_1(phi_sample,phi_a,d,error_para,ant_able)
+function spatial_output = spa_corr_grid_mpac_v2_1(phi_sample,phi_a,d,error_para,ant_able)
 fc = 2.45e9;
 c = 3e8;
 lambda = c/fc;
