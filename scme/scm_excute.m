@@ -3,6 +3,7 @@ scmp.Scenario = 'urban_micro';
 % scmp.IntraClusterDsUsed='yes';
 scmp.FixedPdpUsed='yes';
 scmp.FixedAnglesUsed='yes';
+scmp.UniformTimeSampling = 'yes';
 % scmp.RandomSeed = 12;
 scmp.NumTimeSamples = 1000;
 linkp = linkparset;
@@ -13,6 +14,21 @@ aoa = output.aoas;
 aod = output.aods;
 phases = output.subpath_phases;
 powers = output.path_powers;
+%%
+max_wavelength = 1;
+DIS = linspace(0.001,max_wavelength,100);
+corr_para = zeros(1,length(DIS));
+for dis_index = 1:length(DIS)
+    antp.MsElementPosition = DIS(dis_index);
+    [H, delay, output] = scm(scmp,linkp,antp);
+    
+    H_sum = sum(H,3);
+    R1 = squeeze( H(1,1,:) );
+    R2 = squeeze( H(2,2,:) );
+    corr_temp = corrcoef(R1,R2);
+    corr_para(dis_index) = corr_temp(1,2);
+end
+    
 %%
 h = H(:,:,:,50);
 h1 = reshape(h(1,1,:) + h(2,1,:),1,6);
@@ -121,19 +137,19 @@ aoas = aoas';
 pow = [-3,-4.3,-5.7,-7.3,-9,-11.4];
 pow_mag = sqrt(10.^(pow/10));
 
-for c = 1:CLUSTER
+for clu = 1:CLUSTER
 %     for s = 1:S
-        PAS_output = generate_PAS(phi_sample,'micro',c);
+        PAS_output = generate_PAS(phi_sample,'micro',clu);
         for k = 1:K
             fading_seq= rayleigh(T);
             phi_init = -pi + 2*pi*randn(1,M);
             for m = 1:M
-                fd(m) = dopp(120,aoas(c,m),fc);
+                fd(m) = dopp(120,aoas(clu,m),fc);
                 % force average power in subpaths
                 u_k(m,:) = (1/20) .*exp(1i*(2*pi*fd(m)*t + phi_init(m) ));
             end
-            P(c,k) = pow_mag(c)*PAS_output.PAS(k);
-            h_probe(1,k,c,:) = P(c,k)*sum(u_k(m,:),1).*fading_seq;
+            P(clu,k) = pow_mag(clu)*PAS_output.PAS(k);
+            h_probe(1,k,clu,:) = P(clu,k)*sum(u_k(m,:),1).*fading_seq;
         end
 end
 
@@ -200,3 +216,93 @@ function PAS_output = generate_PAS(phi_sample,scenario,cluster_index)
     PAS_output.PAS = PAS_output.PAS ./ sumPAS;
     PAS_output.pow = pow(cluster_index);
 end
+
+% h_probe = zeros(S,K,CLUSTER,T);
+%%
+% function PAS_output = generate_PAS(ideal_phi,scenario,cluster_index) 
+% generating PAS for every cluster.
+
+fc = 2.45e9;
+speed_of_light=2.99792458e8;
+wavelength=speed_of_light/fc;
+k_CONST = 2*pi/wavelength;
+S = 2; % number of tx antennas
+K = 16; % number of probe(position)
+CLUSTER = 6; % number of clusters
+T = 1e3 + 1; % channel impulse length (unit:ns)
+TAU = 1000; % channel tau(cluster) (unit:ns)
+M = 20; % number of subpaths
+MsDirection = -30;
+v = 30*1000/(60*60);    % 30km/hour
+h_probe = zeros(S,K,CLUSTER,T);
+
+% t = linspace(0,1e-4,T);
+t = linspace(0,T*0.0037,T);
+phi_sample = linspace(-pi,pi,K);
+
+
+aod_5deg=[0.2236 0.7064 1.2461 1.8578 2.5642 3.3986 4.4220 5.7403 7.5974 10.7753]; % [1, Table 5.2]
+delta_nm_aod = [aod_5deg; -aod_5deg];
+delta_nm_aod=delta_nm_aod(:);   % this (M x 1) vector is the same for all users and paths
+delta_nm_aod=repmat(delta_nm_aod,1,CLUSTER);  % a (M x N) matrix
+mean_aods=[6.6100 50.8297 14.1360 38.3972 6.6690 40.2849];
+aods=repmat(mean_aods,M,1)+delta_nm_aod;
+aods = aods';
+
+aoa_main = [0.6966 146.0669 -13.2268  -30.5485 -11.4412 -1.0587];
+aoa_35deg    = [1.5679 4.9447 8.7224 13.0045 17.9492 23.7899 30.9538 40.1824 53.1816 75.4274];      % [1, Table 5.2]
+delta_nm_aoa = [aoa_35deg; -aoa_35deg];
+delta_nm_aoa = delta_nm_aoa(:);       % these are the same for all users and paths
+delta_nm_aoa = repmat(delta_nm_aoa,1,CLUSTER); % a (M x N) matrix
+mean_aoas=aoa_main;
+aoas=repmat(mean_aoas,M,1)+delta_nm_aoa;
+aoas = aoas';
+
+% if strcmpi(IntraClusterDsUsed,'yes')
+%     NumSubPathsPerMidpath=[6,6,4,4]; MidPathOrder=
+%     [1,2,3,4,19,20,5,6,7,8,17,18,9,10,15,16,11,12,13,14];
+%     MidPathDelays=[0  5.8e-009  1.35e-008  2.76e-008];    % relative to
+%     path/cluster delay MidPathPowers=[6/20 6/20 4/20 4/20];  % relative
+%     to path power
+% end
+
+
+
+pow = [-3,-5.7,-4.3,-7.3,-9,-11.4];
+pow_mag = sqrt(10.^(pow/10));
+phases= 360*rand(CLUSTER,M);
+%%
+max_wavelength = 4;
+DIS = linspace(0,max_wavelength*wavelength,100);
+corr_para = zeros(1,length(DIS));
+for dis_index = 1:length(DIS)
+    %     phases= 360*rand(CLUSTER,M);
+    for u = 1:2 % users number
+        du = DIS(dis_index) * (u-1) * wavelength;
+        for s = 1:2 % tx number
+            ds = 0.5 * (s-1) * wavelength;
+            for clu = 1:CLUSTER
+                for m = 1:M
+                    temp_h(m,:) = exp(1j * (k_CONST * ds * sin((aods(clu,m))*pi/180) + (phases(clu,m)*pi/180))) * ...
+                        exp(1j * (k_CONST * du * sin((aoas(clu,m))*pi/180))) * ...
+                        exp(1j * k_CONST * v * cos((aoas(clu,m) - MsDirection)*pi/180) .* t);
+                end
+                H_test(u,s,clu,:) = pow_mag(clu)/M .* sum(temp_h,1);
+            end
+        end
+    end
+    
+    HH = squeeze(sum(H_test,3));
+    
+    R1 = squeeze(HH(1,1,:));
+    R2 = squeeze(HH(2,2,:));
+%     R1 = H_test(1,1,3,:);
+%     R2 = H_test(2,2,3,:);
+    corr_temp = corrcoef(R1,R2);
+    corr_para(dis_index) = corr_temp(1,2);
+    % corr_para(dis_index) = mean(R1.*conj(R2));
+end
+x = linspace(0,max_wavelength,length(DIS));
+norm_corr = corr_para ./ corr_para(1);
+figure;plot(x,abs(norm_corr));
+axis([0 max_wavelength 0 1]);

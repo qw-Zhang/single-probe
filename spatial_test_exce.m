@@ -13,16 +13,16 @@ error_MPAC = zeros(1,length(probe_pos));
 error_SPAC = zeros(1,length(probe_pos));
 phi_a = [0 30 90 120 150]*pi/180;
 for j = 1:1
-    for i = 4:4
+    for i = 1:1
         %uniform choose the location of probe
-            phi_sample = linspace(-pi,pi,probe_pos(i));
-%         phi_sample = linspace(-pi,pi,3);
+%             phi_sample = linspace(-pi,pi,probe_pos(i));
+        phi_sample = linspace(-pi,pi,3);
         m = 0;v = 0;
         error_para = [m,v];
         %     [error_MPAC(i),error_SPAC(i), sim_real_sig_MPAC,sim_real_sig_SPAC, sim_sig, sim_theo,theo] = ...
         %         spa_corr_grid_simulation_v2(phi_sample,error_para,true);
         % how to implement scme CE on spatial correlation
-        mpac_out = spa_corr_grid_simulation_mpac_v2_1(phi_sample,phi_a(j),d,error_para,false);
+        mpac_out = spa_corr_grid_mpac_v3_1(phi_sample,phi_a(j),d,error_para,false);
         error_MPAC(i) = mpac_out.stat;
         %     theo = mpac_out.theory;
         %     sim_theo = mpac_out.spatial_num;
