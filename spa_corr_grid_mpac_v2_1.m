@@ -85,13 +85,14 @@ CLUSTER = 6; % number of clusters
 T = 1e3 + 1; % channel impulse length (unit:ns)
 % TAU = 1000; % channel tau(cluster) (unit:ns)
 M = 20; % number of subpaths
+delta_T = 0.0037;
+t = linspace(0,T*delta_T,T);
 
 h_probe = zeros(S,CLUSTER,K,T);
 
-t = linspace(0,1e-6,T);
 % phi_sample = linspace(-pi,pi,K);
 
-aoa_main = [65.7 45.6 143.2 32.5 -91.1 -19.2];
+aoa_main = [0.6966 146.0669 -13.2268  -30.5485 -11.4412 -1.0587];
 aoa_35deg    = [1.5679 4.9447 8.7224 13.0045 17.9492 23.7899 30.9538 40.1824 53.1816 75.4274];      % [1, Table 5.2]
 delta_nm_aoa = [aoa_35deg; -aoa_35deg];
 delta_nm_aoa = delta_nm_aoa(:);       % these are the same for all users and paths
@@ -106,13 +107,13 @@ v = 30*1000/(60*60);    % 30km/hour
 pow = [-3,-4.3,-5.7,-7.3,-9,-11.4];
 pow_mag = sqrt(10.^(pow/10));
 delay = [0, 29, 22, 66, 87, 93]; % unit(10ns)
+phi_init = -pi + 2*pi*randn(k,M);
 
 for clu = 1:CLUSTER
     %     for s = 1:S
     PAS_output = generate_PAS_inline(phi_sample,'micro',clu);
     for k = 1:K
         fading_seq= randn(1,T) + 1j*randn(1,T);
-        phi_init = -pi + 2*pi*randn(1,M);
         for m = 1:M
             fd(m) = v*cosd(aoas(clu,m) - 120)/lambda;
             % force average power in subpaths

@@ -7,7 +7,7 @@
 
 %this version change the way of error
 function [stat, spatial_circle_real_sig,spatial_circle_sig, spatial_num] = ...
-    spa_corr_sim_v3(phi_sample,error_para,ant_able)
+    spa_corr_spac_v3(phi_sample,error_para,ant_able)
 fc = 2.535e9;   %carrier frequency
 c = 3e8;        %speed of microwave
 lambda = c/fc;  %wavelength

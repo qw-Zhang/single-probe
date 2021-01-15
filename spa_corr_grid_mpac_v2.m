@@ -66,15 +66,14 @@ function spatial_output = spa_corr_grid_mpac_v2(phi_sample,phi_a,d,error_para,an
     sig = exp(1i*2*pi*(fc)*t);
     
     %init matrix
-    h = repmat(1+1j, length(new_d), 2, length(ideal_phi));
-    [d_1, d_2, delta_d, h_sig_1, h_sig_2] = deal(zeros(length(new_d), length(ideal_phi)));
+    [d_1, d_2, delta_d, h_sig_1, h_sig_2, h1_cal, h2_cal] = deal(zeros(length(new_d), length(ideal_phi)));
     [d_real_1, d_real_2, delta_real_d, h_sig_real_1, h_sig_real_2] = deal(zeros(length(new_d), length(phi_sample)));
     rx_1 = repmat(1+1j,length(new_d),length(ideal_phi),length(sig));
     rx_2 = repmat(1+1j,length(new_d),length(ideal_phi),length(sig));
     rx_real_1 = repmat(1+1j,length(new_d),length(phi_sample),length(sig));
     rx_real_2 = repmat(1+1j,length(new_d),length(phi_sample),length(sig));
     [spatial_circle, spatial_circle_sig, spatial_circle_real_sig_MPAC,...
-        spatial_circle_real] = deal(zeros(1,length(new_d)));
+        spatial_circle_real,spatial_num_v2] = deal(zeros(1,length(new_d)));
     h_mpac = zeros(2,length(new_d));
     [rx_1_sum,rx_2_sum] = deal(zeros(length(new_d),length(sig)));
     % snr = 20;
@@ -102,8 +101,8 @@ function spatial_output = spa_corr_grid_mpac_v2(phi_sample,phi_a,d,error_para,an
             rx_2(i,j,:) = P_az_amp(ang_P(2,j))*h_sig_2(i,j)*sig;
         end
         
-        rx_1_sum(i,:) = reshape(sum(rx_1(i,:,:),2),1,length(sig));
-        rx_2_sum(i,:) = reshape(sum(rx_2(i,:,:),2),1,length(sig));
+        rx_1_sum(i,:) = squeeze(sum(rx_1(i,:,:),2))';
+        rx_2_sum(i,:) = squeeze(sum(rx_2(i,:,:),2))';
         % Corr(:,:,i) = abs(corrcoef(h_new_1(i,:),h_new_2(i,:)));
         % spatial_circle_sig(i) = sum(r1(i,:).*conj(r2(i,:)))/sum(r1(1,:).*conj(r2(1,:)));
         
@@ -117,8 +116,8 @@ function spatial_output = spa_corr_grid_mpac_v2(phi_sample,phi_a,d,error_para,an
         for j = 1:length(phi_sample)
             phi_real = phi_sample(j) + pi/2;
             %%postioner
-            error_top = 0.03*randn*lambda;
-%             error_top = 0;
+%             error_top = 0.03*randn*lambda;
+            error_top = 0;
             top = [error_top + r*cos(phi_real),error_top + r*sin(phi_real)];   %this errro is used to first positioner
             pos_ant_1 = [x0 + new_d(i)*cos(phi_a),y0 + new_d(i)*sin(phi_a)]; %(x,y)
             pos_ant_2 = [x0 - new_d(i)*cos(phi_a),y0 - new_d(i)*sin(phi_a)];
@@ -142,9 +141,9 @@ function spatial_output = spa_corr_grid_mpac_v2(phi_sample,phi_a,d,error_para,an
             
         end
         
-        rx_real_1_sum(i,:) = reshape(sum(rx_real_1(i,:,:),2),1,length(sig));
-        rx_real_2_sum(i,:) = reshape(sum(rx_real_2(i,:,:),2),1,length(sig));
-        
+        rx_real_1_sum(i,:) = squeeze(sum(rx_real_1(i,:,:),2))';
+        rx_real_2_sum(i,:) = squeeze(sum(rx_real_2(i,:,:),2))';
+        ss(i) = mean(rx_real_1_sum(i,:).*conj(rx_real_2_sum(i,:)));
         %randomly choose one point in signal sequence. "100" is chosen randomly
         
         %%num = randi([1,length(sig)],1);
@@ -154,12 +153,14 @@ function spatial_output = spa_corr_grid_mpac_v2(phi_sample,phi_a,d,error_para,an
         beta1 = 0;
         %using numberical method calculate the spatial correlation
         for j = 1:length(ideal_phi)
-            h(i,1,j) = alpha*exp(1j*(beta1)).*sqrt(ideal_PAS(j));
-            h(i,2,j) = alpha*exp(1j*(beta1 + 2*pi*(2*new_d(i)/lambda) * cos((pi/2-ideal_phi(j)) + phi_a) ) ).*sqrt(ideal_PAS(j));
+            h1_cal(i,j) = alpha*exp(1j*(beta1)).*sqrt(ideal_PAS(j));
+            h2_cal(i,j) = alpha*exp(1j*(beta1 + 2*pi*(2*new_d(i)/lambda) * cos((pi/2-ideal_phi(j)) + phi_a) ) ).*sqrt(ideal_PAS(j));
         end
-        h1_cal = reshape(h(i,1,:),1,length(ideal_PAS));
-        h2_cal = reshape(conj(h(i,2,:)),1,length(ideal_PAS));
-        spatial_num(i,:) = sum(h1_cal.*h2_cal);
+%         h1_cal = squeeze(h(i,1,:))';
+%         h2_cal = squeeze(conj(h(i,2,:)))';
+        spatial_num(i) = sum(h1_cal.*h2_cal);
+        spatial_num_v2(i) = sum(h1_cal) * sum(h2_cal);
+%         spatial_num_v2(i,:) = 
         
         %     Corr(i,:,:) = abs(corrcoef(squeeze(h(i,1,:)),squeeze(h(i,2,:))));
         
@@ -170,8 +171,9 @@ function spatial_output = spa_corr_grid_mpac_v2(phi_sample,phi_a,d,error_para,an
             %                 spatial(2,i) = spatial(2,i) + exp(-1i*2*pi*fc * (tau(k) + error_para(k)) ).*PAS(k);
             spatial(i) = spatial(i) + exp(-1i*2*pi*fc * tau(k) ).*(ideal_PAS(k));
         end
-        ss(i) = mean(rx_real_1_sum(i,:).*conj(rx_real_2_sum(i,:)));
+        
     end
+    spatial_num_v2_res = spatial_num_v2 ./ spatial_num_v2(1);
     spatial = spatial./spatial(1);
     spatial_circle_sig = spatial_circle_sig./spatial_circle_sig(1);
     spatial_circle_real_sig_MPAC = spatial_circle_real_sig_MPAC./spatial_circle_real_sig_MPAC(1);
@@ -185,6 +187,7 @@ spatial_output.stat = stat_MPAC;
 spatial_output.spatial_circle_real = spatial_circle_real_sig_MPAC;
 spatial_output.spatial_circle = spatial_circle_sig;
 spatial_output.spatial_num = spatial_num;
+spatial_output.spatial_num_v2 = spatial_num_v2_res;
 spatial_output.theory = spatial;
 spatial_output.spatial_sum = ss;
 

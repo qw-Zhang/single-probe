@@ -11,20 +11,21 @@ switch sampling_method
     case 'narrow'
         [v, p] = max(ideal_PAS); % p is the max value position of PAS, similarly as AOA
 %         AOA = PAS_para.AOA;
-        AS_deg = PAS_para.AS * 180 / pi;
+        AS_deg = PAS_para.AS * 300 / pi;
         % ideal_PAS times compared with 360 points.
         ideal_rate = round(length(ideal_PAS) / 360);
 %         for i = 1:length(phi_sample)
 %             % fixed sampling points roughly and temporary (three probes)
 %             
 %         end
-        real_PAS(1) = ideal_PAS(p - 50);
+        delta_pos = 300;
+        real_PAS(1) = ideal_PAS(p - delta_pos);
         real_PAS(2) = ideal_PAS(p);
-        real_PAS(3) = ideal_PAS(p + 50);
+        real_PAS(3) = ideal_PAS(p + delta_pos);
         
-        phi_sample_res(1) = ideal_phi(p - 50);
+        phi_sample_res(1) = ideal_phi(p - delta_pos);
         phi_sample_res(2) = ideal_phi(p);
-        phi_sample_res(3) = ideal_phi(p + 50);
+        phi_sample_res(3) = ideal_phi(p + delta_pos);
         
     otherwise
         warning('wrong sampling');
