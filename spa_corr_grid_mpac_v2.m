@@ -158,8 +158,8 @@ function spatial_output = spa_corr_grid_mpac_v2(phi_sample,phi_a,d,error_para,an
         end
 %         h1_cal = squeeze(h(i,1,:))';
 %         h2_cal = squeeze(conj(h(i,2,:)))';
-        spatial_num(i) = sum(h1_cal.*h2_cal);
-        spatial_num_v2(i) = sum(h1_cal) * sum(h2_cal);
+        spatial_num(i) = sum(h1_cal(i,:).*h2_cal(i,:));
+        spatial_num_v2(i) = sum(h1_cal(i,:)) .* sum(h2_cal(i,:));
 %         spatial_num_v2(i,:) = 
         
         %     Corr(i,:,:) = abs(corrcoef(squeeze(h(i,1,:)),squeeze(h(i,2,:))));
@@ -184,11 +184,11 @@ function spatial_output = spa_corr_grid_mpac_v2(phi_sample,phi_a,d,error_para,an
     ss = ss./ss(1);
 %     output structure
 spatial_output.stat = stat_MPAC;
-spatial_output.spatial_circle_real = spatial_circle_real_sig_MPAC;
-spatial_output.spatial_circle = spatial_circle_sig;
-spatial_output.spatial_num = spatial_num;
-spatial_output.spatial_num_v2 = spatial_num_v2_res;
+spatial_output.circle_real = spatial_circle_real_sig_MPAC;
+spatial_output.circle = spatial_circle_sig;
+spatial_output.num = spatial_num;
+spatial_output.num_v2 = spatial_num_v2_res;
 spatial_output.theory = spatial;
-spatial_output.spatial_sum = ss;
+spatial_output.sum = ss;
 
 % different strength of signal to control probe power

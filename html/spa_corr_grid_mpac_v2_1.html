@@ -1,0 +1,669 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>spa_corr_grid_mpac_v2_1</title><meta name="generator" content="MATLAB 9.9"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2021-01-20"><meta name="DC.source" content="spa_corr_grid_mpac_v2_1.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#3">generate h (channel parameters)</a></li></ul></div><pre class="codeinput"><span class="comment">% spa_corr_grid -&gt; this version change the way of error</span>
+<span class="comment">% v2 -&gt; add phase estimate</span>
+<span class="comment">% v2.1 add simulation h(channel parameter), and simulation the spatial</span>
+<span class="comment">% correlation without signal, just using channel itself.</span>
+<span class="keyword">function</span> spatial_output = spa_corr_grid_mpac_v2_1(phi_sample,phi_a,d,error_para,ant_able)
+</pre><pre class="codeinput">fc = 2.45e9;
+c = 3e8;
+speed_of_light=2.99792458e8;
+wavelength=speed_of_light/fc;
+k_CONST = 2*pi/wavelength;
+lambda = c/fc;
+<span class="comment">% d = linspace(0,lambda,100);</span>
+<span class="comment">% new_d = linspace(0,lambda/2,100);</span>
+new_d = linspace(0,d(length(d))/2,length(d));
+
+ideal_phi = linspace(-pi,pi,3600);
+
+<span class="comment">% real_phi as a parameter</span>
+<span class="comment">% real_phi = linspace(-pi,pi,18);</span>
+real_PAS = zeros(1,length(phi_sample));
+
+rate = floor(length(ideal_phi)/length(phi_sample));
+<span class="comment">% rate = length(ideal_phi)/length(real_phi);</span>
+
+<span class="comment">%scenario parameters</span>
+<span class="comment">% phi_a = 0*pi/180;</span>
+scenario = <span class="string">'micro'</span>;
+ideal_PAS = generate_PAS1(ideal_phi,scenario);
+
+<span class="comment">% real probe scenario</span>
+<span class="keyword">for</span> i = 1:length(phi_sample)
+    real_PAS(i) = sum(ideal_PAS(rate*(i-1)+1:rate*i))/rate;
+    phi_sample(i) = sum(ideal_phi(rate*(i-1)+1:rate*i))/rate;
+<span class="keyword">end</span>
+real_sum_PAS = sum(real_PAS);
+real_PAS = real_PAS/real_sum_PAS;
+
+<span class="comment">%Rx one antenna pattern</span>
+<span class="comment">%generate the pattern gain of the antenna.</span>
+<span class="comment">%parameter:antenna,frequency,al,ez.</span>
+<span class="comment">%G(dBi)=10lgGi G(dBd)=10lgG dBi=dBd+2.15</span>
+<span class="comment">% [D,al,ez] = pattern(ant,fc,0:1:360,-90:1:90);</span>
+
+<span class="keyword">if</span> ant_able
+    P_az = generate_pattern(fc);
+<span class="keyword">else</span>
+    P_az = zeros(1,3600);
+<span class="keyword">end</span>
+P_az_amp = 10.^(P_az./10);
+
+spatial = zeros(1,length(d));
+beta = -pi + (pi--pi).*rand(1,length(ideal_phi)); <span class="comment">%random select phase of signal</span>
+alpha = 1;
+
+<span class="comment">%using numberical method calculate the spatial correlation</span>
+spatial_num = zeros(length(d),1);
+
+<span class="comment">%simulate radius of circle</span>
+r = 1;
+
+t = linspace(0,1e-7,100);
+<span class="comment">% doppler frequency fd = fc*v*cos(theta)/c</span>
+v = 10; <span class="comment">%m/s</span>
+theta = 30*pi/180;
+fd = fc*v*cos(theta)/c;
+sig = exp(1i*2*pi*(fc + fd)*t);
+
+<span class="comment">%init matrix</span>
+h = repmat(1+1j, length(d), 2, length(ideal_phi));
+[d_1, d_2, delta_d, h_sig_1, h_sig_2] = deal(zeros(length(d), length(ideal_phi)));
+[d_real_1, d_real_2, delta_real_d, h_sig_real_1, h_sig_real_2] = deal(zeros(length(d), length(phi_sample)));
+rx_1 = repmat(1+1j,length(d),length(ideal_phi),length(sig));
+rx_2 = repmat(1+1j,length(d),length(ideal_phi),length(sig));
+rx_real_1 = repmat(1+1j,length(d),length(phi_sample),length(sig));
+rx_real_2 = repmat(1+1j,length(d),length(phi_sample),length(sig));
+[spatial_circle, spatial_circle_sig, spatial_circle_real_sig_MPAC,<span class="keyword">...</span>
+    spatial_circle_real] = deal(zeros(1,length(d)));
+</pre><pre class="codeoutput error">Not enough input arguments.
+
+Error in spa_corr_grid_mpac_v2_1 (line 14)
+new_d = linspace(0,d(length(d))/2,length(d));
+</pre><h2 id="3">generate h (channel parameters)</h2><pre>   x0 = 0.5*lambda;y0 = -0.3*lambda;   %center coordinate of two ants</pre><pre class="codeinput">x0 = 0; y0 = 0;
+pos_ant_1 = [-new_d(length(new_d))/2*cos(phi_a), <span class="keyword">...</span>
+    -new_d(length(new_d))/2*sin(phi_a)]; <span class="comment">%(x,y)</span>
+
+S = 2; <span class="comment">% number of tx antennas</span>
+K = length(phi_sample); <span class="comment">% number of probe(position)</span>
+CLUSTER = 6; <span class="comment">% number of clusters</span>
+T = 1e3 + 1; <span class="comment">% channel impulse length (unit:ns)</span>
+<span class="comment">% TAU = 1000; % channel tau(cluster) (unit:ns)</span>
+M = 20; <span class="comment">% number of subpaths</span>
+delta_T = 0.0037;
+t = linspace(0,T*delta_T,T);
+
+h_probe = zeros(S,CLUSTER,K,T);
+
+aod_5deg=[0.2236 0.7064 1.2461 1.8578 2.5642 3.3986 4.4220 5.7403 7.5974 10.7753]; <span class="comment">% [1, Table 5.2]</span>
+<span class="comment">% aod_2deg     = [0.0894 0.2826 0.4984 0.7431 1.0257 1.3594 1.7688 2.2961 3.0389 4.3101];     % [1, Table 5.2]</span>
+delta_nm_aod = [aod_5deg; -aod_5deg];
+delta_nm_aod=delta_nm_aod(:);   <span class="comment">% this (M x 1) vector is the same for all users and paths</span>
+delta_nm_aod=repmat(delta_nm_aod,1,CLUSTER);  <span class="comment">% a (M x N) matrix</span>
+mean_aods=[6.6100 50.8297 14.1360 38.3972 6.6690 40.2849];
+<span class="comment">% mean_aods=[81.9720 79.6210 80.5354 98.6319 102.1308 107.0643];</span>
+aods=repmat(mean_aods,M,1)+delta_nm_aod;
+aods = aods';
+
+<span class="comment">% phi_sample = linspace(-pi,pi,K);</span>
+aoa_main = [0.6966 146.0669 -13.2268  -30.5485 -11.4412 -1.0587];
+<span class="comment">% aoa_main = [65.7489 143.1863 45.6454 32.5131 -91.0551 -19.1657];</span>
+aoa_35deg    = [1.5679 4.9447 8.7224 13.0045 17.9492 23.7899 30.9538 40.1824 53.1816 75.4274];      <span class="comment">% [1, Table 5.2]</span>
+delta_nm_aoa = [aoa_35deg; -aoa_35deg];
+delta_nm_aoa = delta_nm_aoa(:);       <span class="comment">% these are the same for all users and paths</span>
+delta_nm_aoa = repmat(delta_nm_aoa,1,CLUSTER); <span class="comment">% a (M x N) matrix</span>
+mean_aoas=aoa_main;
+aoas=repmat(mean_aoas,M,1)+delta_nm_aoa;
+aoas = aoas';
+
+v = 30*1000/(60*60);    <span class="comment">% 30km/hour</span>
+
+<span class="comment">% this pow and delay are fixed by scenario "micro" maybe should be revised</span>
+pow = [-3,-4.3,-5.7,-7.3,-9,-11.4];
+<span class="comment">% pow = [-3,-5.2,-4.7,-8.2,-12.1,-15.5];</span>
+pow_mag = sqrt(10.^(pow/10));
+delay = [0, 29, 22, 66, 87, 93]; <span class="comment">% unit(10ns)</span>
+
+<span class="keyword">for</span> s = 1:2 <span class="comment">% tx number</span>
+            ds = 0.5 * (s-1) * wavelength;
+<span class="keyword">for</span> clu = 1:CLUSTER
+    <span class="comment">%     for s = 1:S</span>
+    phi_init = -pi + 2*pi*randn(K,M);
+    PAS_output = generate_PAS_inline(phi_sample,<span class="string">'micro'</span>,clu);
+    <span class="keyword">for</span> k = 1:K
+        <span class="keyword">for</span> m = 1:M
+            fd(m) = v*cosd(aoas(clu,m) - 120)/lambda;
+            <span class="comment">% force average power in subpaths</span>
+            u_k(m,:) = (1/20) .*exp(1j * (k_CONST * ds * sin((aods(clu,m))*pi/180) )) * <span class="keyword">...</span>
+                        exp(1i*(2*pi*fd(m)*t + phi_init(m) ));
+        <span class="keyword">end</span>
+        P(clu,k) = pow_mag(clu)*PAS_output.PAS(k);
+        h_probe(s,clu,k,:) = P(clu,k)*sum(u_k,1);
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+<span class="keyword">end</span>
+H = squeeze(sum(h_probe,2));
+<span class="comment">% channel_sim = zeros(CLUSTER,K,T);</span>
+h_1 = zeros(length(new_d),T);
+h_2 = zeros(length(new_d),T);
+len_h = length(h_2);
+</pre><p>snr = 20;     x0 = 0.5*lambda;y0 = -0.3*lambda;   %center coordinate of two ants</p><pre class="codeinput">x0 = 0;y0 = 0;
+
+<span class="keyword">for</span> i = 1:length(new_d)
+    <span class="comment">%simulate spatial correlation using two antennas with circle</span>
+    pos_ant_1 = [new_d(i)*cos(phi_a),new_d(i)*sin(phi_a)]; <span class="comment">%(x,y)</span>
+    pos_ant_2 = [-new_d(i)*cos(phi_a),-new_d(i)*sin(phi_a)];
+    <span class="keyword">for</span> j = 1:length(ideal_phi)
+        phi = ideal_phi(j) - phi_a;
+        top = [r*cos(phi+pi/2),r*sin(phi+pi/2)];
+        d_1(i,j) = sqrt((pos_ant_1(1) - top(1))^2 + (pos_ant_1(2) - top(2))^2);
+        d_2(i,j) = sqrt((pos_ant_2(1) - top(1))^2 + (pos_ant_2(2) - top(2))^2);
+        delta_d(i,j) = d_2(i,j) - d_1(i,j);
+        h_sig_1(i,j) = alpha*exp(1j*(beta(j))).*sqrt(ideal_PAS(j));
+        h_sig_2(i,j) = alpha*exp(1j*(beta(j) + 2*pi*delta_d(i,j)/lambda)).*sqrt(ideal_PAS(j));
+        <span class="comment">%             [ang_P_1,ang_P_2] = generate_ang_of_pattern(d_1(i,j),d_2(i,j),new_d(i),r,(pi/2 - phi),(phi + pi/2));</span>
+        [ang_P_1,ang_P_2] = generate_ang_of_pattern_v2(pos_ant_1,pos_ant_2,top);
+        rx_1(i,j,:) = P_az_amp((ang_P_1))*conv(h_sig_1(i,j),sig);
+        rx_2(i,j,:) = P_az_amp((ang_P_2))*conv(h_sig_2(i,j),sig);
+    <span class="keyword">end</span>
+
+    <span class="comment">% Corr(:,:,i) = abs(corrcoef(h_new_1(i,:),h_new_2(i,:)));</span>
+    <span class="comment">% spatial_circle_sig(i) = sum(r1(i,:).*conj(r2(i,:)))/sum(r1(1,:).*conj(r2(1,:)));</span>
+
+    num = randi([1,length(d)],1);
+    <span class="comment">%randomly choose one point in signal sequence. "100" is chosen randomly</span>
+    spatial_circle_sig(i) = sum(rx_1(i,:,num).*conj(rx_2(i,:,num)));
+    <span class="comment">%     spatial_circle(i) = sum(h_sig_1(i,:).*conj(h_sig_2(i,:)));</span>
+
+    <span class="comment">%simulate spatial correlation using two antenna with circle(MPAC),</span>
+    <span class="comment">%real phi and PAS</span>
+
+        <span class="keyword">for</span> j = 1:length(phi_sample)
+            phi_real = (phi_sample(j) - phi_a);
+            <span class="comment">%%postioner</span>
+            <span class="comment">% error_top = 0.3*randn*lambda;</span>
+            error_top = 0;
+            top = [error_top + r*cos(phi_real+pi/2),error_top + r*sin(phi_real+pi/2)];   <span class="comment">%this errro is used to first positioner</span>
+            pos_ant_1 = [x0 + new_d(i)*cos(phi_a),y0 + new_d(i)*sin(phi_a)]; <span class="comment">%(x,y)</span>
+            pos_ant_2 = [x0 - new_d(i)*cos(phi_a),y0 - new_d(i)*sin(phi_a)];
+            d_real_1(i,j) = sqrt((pos_ant_1(1) - top(1))^2 + (pos_ant_1(2) - top(2))^2);
+            d_real_2(i,j) = sqrt((pos_ant_2(1) - top(1))^2 + (pos_ant_2(2) - top(2))^2);
+            delta_real_d(i,j) = d_real_2(i,j) - d_real_1(i,j);
+
+            <span class="comment">% error of time alignment on probe</span>
+            error = error_para(1) + error_para(2)*randn(1,1);
+            <span class="comment">% add pathloss of antenna1/2 ?</span>
+            <span class="comment">% pathloss should not be considered</span>
+            h_sig_real_1(i,j) = alpha*exp(1j*(beta(j) + 2*pi*fc*(d_real_1(i,j)/c) )).*sqrt(real_PAS(j));
+            h_sig_real_2(i,j) = alpha*exp(1j*(beta(j) + 2*pi*fc*(d_real_2(i,j)/c) )).*sqrt(real_PAS(j));
+
+            <span class="keyword">for</span> t_index = 1:T
+                h_probe_1(j,t_index) = H(1,j,t_index) .* exp(1j*2*pi*fc*(dot(pos_ant_1,top)/c) );
+                h_probe_2(j,t_index) = H(1,j,t_index) .* exp(1j*2*pi*fc*(dot(pos_ant_2,top)/c) );
+<span class="comment">%                 h_probe_1(j,t_index) = H(1,j,t_index) .* exp(1j*2*pi*fc*(d_real_1(i,j)/c) );</span>
+<span class="comment">%                 h_probe_2(j,t_index) = H(1,j,t_index) .* exp(1j*2*pi*fc*(d_real_2(i,j)/c) );</span>
+            <span class="keyword">end</span>
+
+            [ang_P_1,ang_P_2] = generate_ang_of_pattern_v2(top,pos_ant_1,pos_ant_2);
+            rx_real_1(i,j,:) = P_az_amp(ang_P_1)*(h_sig_real_1(i,j)*sig);
+            rx_real_2(i,j,:) = P_az_amp(ang_P_2)*(h_sig_real_2(i,j)*sig);
+
+            <span class="comment">% using single DUT antenna method()</span>
+        <span class="keyword">end</span>
+        h_1(i,:) = squeeze(sum(h_probe_1,1))';
+        h_2(i,:) = squeeze(sum(h_probe_2,1))';
+
+    <span class="comment">%randomly choose one point in signal sequence. "100" is chosen randomly</span>
+    num = randi([1,length(sig)],1);
+    spatial_circle_real_sig_MPAC(i) = sum(rx_real_1(i,:,num).*conj(rx_real_2(i,:,num)));
+
+
+    beta1 = 0;
+    <span class="comment">%using numberical method calculate the spatial correlation</span>
+    <span class="keyword">for</span> j = 1:length(ideal_phi)
+        h(i,1,j) = alpha*exp(1j*(beta1)).*sqrt(ideal_PAS(j));
+        h(i,2,j) = alpha*exp(1j*(beta1 + 2*pi*(2*new_d(i)/lambda) * cos((pi/2-ideal_phi(j)) + phi_a) ) ).*sqrt(ideal_PAS(j));
+    <span class="keyword">end</span>
+    h1_cal = reshape(h(i,1,:),1,length(ideal_PAS));
+    h2_cal = reshape(conj(h(i,2,:)),1,length(ideal_PAS));
+    spatial_num(i,:) = sum(h1_cal.*h2_cal);
+
+    <span class="comment">%     Corr(i,:,:) = abs(corrcoef(squeeze(h(i,1,:)),squeeze(h(i,2,:))));</span>
+
+    <span class="comment">%using traditional method(ideally equation) calculate</span>
+    tau = zeros(1,length(ideal_phi));
+    <span class="keyword">for</span> k = 1:length(ideal_phi)
+        tau(k) = d(i)*sin(ideal_phi(k)-phi_a) / c;
+        spatial(i) = spatial(i) + exp(-1i*2*pi*fc * tau(k) ) .* ideal_PAS(k);
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+spatial = spatial./spatial(1);
+spatial_circle_sig = spatial_circle_sig./spatial_circle_sig(1);
+spatial_circle_real_sig_MPAC = spatial_circle_real_sig_MPAC./spatial_circle_real_sig_MPAC(1);
+<span class="comment">% Correaltion = squeeze(Corr(:,1,2));</span>
+
+<span class="comment">%calculate the statistical error</span>
+stat_MPAC = sqrt(sum(power(abs(spatial_circle_real_sig_MPAC)-abs(spatial_circle_sig),2))/length(spatial_circle_sig));
+
+<span class="comment">%     output structure</span>
+spatial_output.stat = stat_MPAC;
+spatial_output.spatial_circle_real = spatial_circle_real_sig_MPAC;
+spatial_output.spatial_circle = spatial_circle_sig;
+spatial_output.spatial_num = spatial_num;
+spatial_output.theory = spatial;
+</pre><pre class="codeinput"><span class="keyword">end</span>
+
+<span class="comment">% generate PAS data by function:PAS_fun</span>
+<span class="keyword">function</span> PAS_output = generate_PAS_inline(phi_sample,scenario,cluster_index)
+<span class="keyword">switch</span> scenario
+    <span class="keyword">case</span> <span class="string">'test'</span>
+        AOA = -22.5*pi/180;AS = 35*pi/180;
+        pow = 0;
+
+    <span class="keyword">case</span> <span class="string">'micro'</span>
+        <span class="comment">% % SCME urban micro-cell</span>
+        AOA = [0.7,-13.2,146.1,-30.5,-11.4,-1.1] * pi/180;
+        AS = 35*pi/180;
+        pow = [-3,-4.3,-5.7,-7.3,-9,-11.4];
+
+    <span class="keyword">case</span> <span class="string">'macro'</span>
+        <span class="comment">% %SCME urban macro-cell</span>
+        AOA = [65.7,45.6,143.2,32.5,-91.1,-19.2]*pi/180;
+        AS = 35*pi/180;
+        pow = [-3,-5.2,-4.7,-8.2,-12.1,-15.5];
+
+    <span class="keyword">otherwise</span>
+        warning(<span class="string">'wrong scenario.'</span>);
+        quit;
+<span class="keyword">end</span>
+
+<span class="keyword">if</span> strcmp(scenario, <span class="string">'test'</span>)
+    cluster_index = 1;
+<span class="keyword">end</span>
+
+<span class="comment">% amp = 10.^(pow/10);</span>
+<span class="comment">% A = amp./max(amp);</span>
+<span class="comment">%     PAS_fun = @(x) (1/(2*AS))*sum( A.*exp(-abs(x-AOA)/AS) );</span>
+PAS_fun = @(x) (1/(2*AS))* exp(-abs(x - AOA(cluster_index) )/AS);
+
+PAS_output.PAS = zeros(1,length(phi_sample));
+
+<span class="keyword">for</span> i = 1:length(phi_sample)
+    PAS_output.PAS(i) = PAS_fun(phi_sample(i));
+<span class="keyword">end</span>
+
+sumPAS = sum(PAS_output.PAS);
+PAS_output.PAS = PAS_output.PAS ./ sumPAS;
+PAS_output.pow = pow(cluster_index);
+<span class="keyword">end</span>
+</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2020b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+% spa_corr_grid -> this version change the way of error
+% v2 -> add phase estimate
+% v2.1 add simulation h(channel parameter), and simulation the spatial
+% correlation without signal, just using channel itself.
+function spatial_output = spa_corr_grid_mpac_v2_1(phi_sample,phi_a,d,error_para,ant_able)
+fc = 2.45e9;
+c = 3e8;
+speed_of_light=2.99792458e8;
+wavelength=speed_of_light/fc;
+k_CONST = 2*pi/wavelength;
+lambda = c/fc;
+% d = linspace(0,lambda,100);
+% new_d = linspace(0,lambda/2,100);
+new_d = linspace(0,d(length(d))/2,length(d));
+
+ideal_phi = linspace(-pi,pi,3600);
+
+% real_phi as a parameter
+% real_phi = linspace(-pi,pi,18);
+real_PAS = zeros(1,length(phi_sample));
+
+rate = floor(length(ideal_phi)/length(phi_sample));
+% rate = length(ideal_phi)/length(real_phi);
+
+%scenario parameters
+% phi_a = 0*pi/180;
+scenario = 'micro';
+ideal_PAS = generate_PAS1(ideal_phi,scenario);
+
+% real probe scenario
+for i = 1:length(phi_sample)
+    real_PAS(i) = sum(ideal_PAS(rate*(i-1)+1:rate*i))/rate;
+    phi_sample(i) = sum(ideal_phi(rate*(i-1)+1:rate*i))/rate;
+end
+real_sum_PAS = sum(real_PAS);
+real_PAS = real_PAS/real_sum_PAS;
+
+%Rx one antenna pattern
+%generate the pattern gain of the antenna.
+%parameter:antenna,frequency,al,ez.
+%G(dBi)=10lgGi G(dBd)=10lgG dBi=dBd+2.15
+% [D,al,ez] = pattern(ant,fc,0:1:360,-90:1:90);
+
+if ant_able
+    P_az = generate_pattern(fc);
+else
+    P_az = zeros(1,3600);
+end
+P_az_amp = 10.^(P_az./10);
+
+spatial = zeros(1,length(d));
+beta = -pi + (piREPLACE_WITH_DASH_DASHpi).*rand(1,length(ideal_phi)); %random select phase of signal
+alpha = 1;
+
+%using numberical method calculate the spatial correlation
+spatial_num = zeros(length(d),1);
+
+%simulate radius of circle
+r = 1;
+
+t = linspace(0,1e-7,100);
+% doppler frequency fd = fc*v*cos(theta)/c
+v = 10; %m/s
+theta = 30*pi/180;
+fd = fc*v*cos(theta)/c;
+sig = exp(1i*2*pi*(fc + fd)*t);
+
+%init matrix
+h = repmat(1+1j, length(d), 2, length(ideal_phi));
+[d_1, d_2, delta_d, h_sig_1, h_sig_2] = deal(zeros(length(d), length(ideal_phi)));
+[d_real_1, d_real_2, delta_real_d, h_sig_real_1, h_sig_real_2] = deal(zeros(length(d), length(phi_sample)));
+rx_1 = repmat(1+1j,length(d),length(ideal_phi),length(sig));
+rx_2 = repmat(1+1j,length(d),length(ideal_phi),length(sig));
+rx_real_1 = repmat(1+1j,length(d),length(phi_sample),length(sig));
+rx_real_2 = repmat(1+1j,length(d),length(phi_sample),length(sig));
+[spatial_circle, spatial_circle_sig, spatial_circle_real_sig_MPAC,...
+    spatial_circle_real] = deal(zeros(1,length(d)));
+
+%% generate h (channel parameters)
+%     x0 = 0.5*lambda;y0 = -0.3*lambda;   %center coordinate of two ants
+x0 = 0; y0 = 0;
+pos_ant_1 = [-new_d(length(new_d))/2*cos(phi_a), ...
+    -new_d(length(new_d))/2*sin(phi_a)]; %(x,y)
+
+S = 2; % number of tx antennas
+K = length(phi_sample); % number of probe(position)
+CLUSTER = 6; % number of clusters
+T = 1e3 + 1; % channel impulse length (unit:ns)
+% TAU = 1000; % channel tau(cluster) (unit:ns)
+M = 20; % number of subpaths
+delta_T = 0.0037;
+t = linspace(0,T*delta_T,T);
+
+h_probe = zeros(S,CLUSTER,K,T);
+
+aod_5deg=[0.2236 0.7064 1.2461 1.8578 2.5642 3.3986 4.4220 5.7403 7.5974 10.7753]; % [1, Table 5.2]
+% aod_2deg     = [0.0894 0.2826 0.4984 0.7431 1.0257 1.3594 1.7688 2.2961 3.0389 4.3101];     % [1, Table 5.2]
+delta_nm_aod = [aod_5deg; -aod_5deg];
+delta_nm_aod=delta_nm_aod(:);   % this (M x 1) vector is the same for all users and paths
+delta_nm_aod=repmat(delta_nm_aod,1,CLUSTER);  % a (M x N) matrix
+mean_aods=[6.6100 50.8297 14.1360 38.3972 6.6690 40.2849];
+% mean_aods=[81.9720 79.6210 80.5354 98.6319 102.1308 107.0643];
+aods=repmat(mean_aods,M,1)+delta_nm_aod;
+aods = aods';
+
+% phi_sample = linspace(-pi,pi,K);
+aoa_main = [0.6966 146.0669 -13.2268  -30.5485 -11.4412 -1.0587];
+% aoa_main = [65.7489 143.1863 45.6454 32.5131 -91.0551 -19.1657];
+aoa_35deg    = [1.5679 4.9447 8.7224 13.0045 17.9492 23.7899 30.9538 40.1824 53.1816 75.4274];      % [1, Table 5.2]
+delta_nm_aoa = [aoa_35deg; -aoa_35deg];
+delta_nm_aoa = delta_nm_aoa(:);       % these are the same for all users and paths
+delta_nm_aoa = repmat(delta_nm_aoa,1,CLUSTER); % a (M x N) matrix
+mean_aoas=aoa_main;
+aoas=repmat(mean_aoas,M,1)+delta_nm_aoa;
+aoas = aoas';
+
+v = 30*1000/(60*60);    % 30km/hour
+
+% this pow and delay are fixed by scenario "micro" maybe should be revised
+pow = [-3,-4.3,-5.7,-7.3,-9,-11.4];
+% pow = [-3,-5.2,-4.7,-8.2,-12.1,-15.5];
+pow_mag = sqrt(10.^(pow/10));
+delay = [0, 29, 22, 66, 87, 93]; % unit(10ns)
+
+for s = 1:2 % tx number
+            ds = 0.5 * (s-1) * wavelength;
+for clu = 1:CLUSTER
+    %     for s = 1:S
+    phi_init = -pi + 2*pi*randn(K,M);
+    PAS_output = generate_PAS_inline(phi_sample,'micro',clu);
+    for k = 1:K
+        for m = 1:M
+            fd(m) = v*cosd(aoas(clu,m) - 120)/lambda;
+            % force average power in subpaths
+            u_k(m,:) = (1/20) .*exp(1j * (k_CONST * ds * sin((aods(clu,m))*pi/180) )) * ...
+                        exp(1i*(2*pi*fd(m)*t + phi_init(m) ));
+        end
+        P(clu,k) = pow_mag(clu)*PAS_output.PAS(k);
+        h_probe(s,clu,k,:) = P(clu,k)*sum(u_k,1);
+    end
+end
+end
+H = squeeze(sum(h_probe,2));
+% channel_sim = zeros(CLUSTER,K,T);
+h_1 = zeros(length(new_d),T);
+h_2 = zeros(length(new_d),T);
+len_h = length(h_2);
+%%
+% snr = 20;
+%     x0 = 0.5*lambda;y0 = -0.3*lambda;   %center coordinate of two ants
+x0 = 0;y0 = 0;
+
+for i = 1:length(new_d)
+    %simulate spatial correlation using two antennas with circle
+    pos_ant_1 = [new_d(i)*cos(phi_a),new_d(i)*sin(phi_a)]; %(x,y)
+    pos_ant_2 = [-new_d(i)*cos(phi_a),-new_d(i)*sin(phi_a)];
+    for j = 1:length(ideal_phi)
+        phi = ideal_phi(j) - phi_a;
+        top = [r*cos(phi+pi/2),r*sin(phi+pi/2)];
+        d_1(i,j) = sqrt((pos_ant_1(1) - top(1))^2 + (pos_ant_1(2) - top(2))^2);
+        d_2(i,j) = sqrt((pos_ant_2(1) - top(1))^2 + (pos_ant_2(2) - top(2))^2);
+        delta_d(i,j) = d_2(i,j) - d_1(i,j);
+        h_sig_1(i,j) = alpha*exp(1j*(beta(j))).*sqrt(ideal_PAS(j));
+        h_sig_2(i,j) = alpha*exp(1j*(beta(j) + 2*pi*delta_d(i,j)/lambda)).*sqrt(ideal_PAS(j));
+        %             [ang_P_1,ang_P_2] = generate_ang_of_pattern(d_1(i,j),d_2(i,j),new_d(i),r,(pi/2 - phi),(phi + pi/2));
+        [ang_P_1,ang_P_2] = generate_ang_of_pattern_v2(pos_ant_1,pos_ant_2,top);
+        rx_1(i,j,:) = P_az_amp((ang_P_1))*conv(h_sig_1(i,j),sig);
+        rx_2(i,j,:) = P_az_amp((ang_P_2))*conv(h_sig_2(i,j),sig);
+    end
+    
+    % Corr(:,:,i) = abs(corrcoef(h_new_1(i,:),h_new_2(i,:)));
+    % spatial_circle_sig(i) = sum(r1(i,:).*conj(r2(i,:)))/sum(r1(1,:).*conj(r2(1,:)));
+    
+    num = randi([1,length(d)],1);
+    %randomly choose one point in signal sequence. "100" is chosen randomly
+    spatial_circle_sig(i) = sum(rx_1(i,:,num).*conj(rx_2(i,:,num)));
+    %     spatial_circle(i) = sum(h_sig_1(i,:).*conj(h_sig_2(i,:)));
+    
+    %simulate spatial correlation using two antenna with circle(MPAC),
+    %real phi and PAS
+    
+        for j = 1:length(phi_sample)
+            phi_real = (phi_sample(j) - phi_a);
+            %%postioner
+            % error_top = 0.3*randn*lambda;
+            error_top = 0;
+            top = [error_top + r*cos(phi_real+pi/2),error_top + r*sin(phi_real+pi/2)];   %this errro is used to first positioner
+            pos_ant_1 = [x0 + new_d(i)*cos(phi_a),y0 + new_d(i)*sin(phi_a)]; %(x,y)
+            pos_ant_2 = [x0 - new_d(i)*cos(phi_a),y0 - new_d(i)*sin(phi_a)];
+            d_real_1(i,j) = sqrt((pos_ant_1(1) - top(1))^2 + (pos_ant_1(2) - top(2))^2);
+            d_real_2(i,j) = sqrt((pos_ant_2(1) - top(1))^2 + (pos_ant_2(2) - top(2))^2);
+            delta_real_d(i,j) = d_real_2(i,j) - d_real_1(i,j);
+            
+            % error of time alignment on probe
+            error = error_para(1) + error_para(2)*randn(1,1);
+            % add pathloss of antenna1/2 ? 
+            % pathloss should not be considered
+            h_sig_real_1(i,j) = alpha*exp(1j*(beta(j) + 2*pi*fc*(d_real_1(i,j)/c) )).*sqrt(real_PAS(j));
+            h_sig_real_2(i,j) = alpha*exp(1j*(beta(j) + 2*pi*fc*(d_real_2(i,j)/c) )).*sqrt(real_PAS(j));
+            
+            for t_index = 1:T
+                h_probe_1(j,t_index) = H(1,j,t_index) .* exp(1j*2*pi*fc*(dot(pos_ant_1,top)/c) );
+                h_probe_2(j,t_index) = H(1,j,t_index) .* exp(1j*2*pi*fc*(dot(pos_ant_2,top)/c) );
+%                 h_probe_1(j,t_index) = H(1,j,t_index) .* exp(1j*2*pi*fc*(d_real_1(i,j)/c) );
+%                 h_probe_2(j,t_index) = H(1,j,t_index) .* exp(1j*2*pi*fc*(d_real_2(i,j)/c) );
+            end
+            
+            [ang_P_1,ang_P_2] = generate_ang_of_pattern_v2(top,pos_ant_1,pos_ant_2);
+            rx_real_1(i,j,:) = P_az_amp(ang_P_1)*(h_sig_real_1(i,j)*sig);
+            rx_real_2(i,j,:) = P_az_amp(ang_P_2)*(h_sig_real_2(i,j)*sig);
+            
+            % using single DUT antenna method()
+        end
+        h_1(i,:) = squeeze(sum(h_probe_1,1))';
+        h_2(i,:) = squeeze(sum(h_probe_2,1))';
+    
+    %randomly choose one point in signal sequence. "100" is chosen randomly
+    num = randi([1,length(sig)],1);
+    spatial_circle_real_sig_MPAC(i) = sum(rx_real_1(i,:,num).*conj(rx_real_2(i,:,num)));
+    
+    
+    beta1 = 0;
+    %using numberical method calculate the spatial correlation
+    for j = 1:length(ideal_phi)
+        h(i,1,j) = alpha*exp(1j*(beta1)).*sqrt(ideal_PAS(j));
+        h(i,2,j) = alpha*exp(1j*(beta1 + 2*pi*(2*new_d(i)/lambda) * cos((pi/2-ideal_phi(j)) + phi_a) ) ).*sqrt(ideal_PAS(j));
+    end
+    h1_cal = reshape(h(i,1,:),1,length(ideal_PAS));
+    h2_cal = reshape(conj(h(i,2,:)),1,length(ideal_PAS));
+    spatial_num(i,:) = sum(h1_cal.*h2_cal);
+    
+    %     Corr(i,:,:) = abs(corrcoef(squeeze(h(i,1,:)),squeeze(h(i,2,:))));
+    
+    %using traditional method(ideally equation) calculate
+    tau = zeros(1,length(ideal_phi));
+    for k = 1:length(ideal_phi)
+        tau(k) = d(i)*sin(ideal_phi(k)-phi_a) / c;
+        spatial(i) = spatial(i) + exp(-1i*2*pi*fc * tau(k) ) .* ideal_PAS(k);
+    end
+end
+spatial = spatial./spatial(1);
+spatial_circle_sig = spatial_circle_sig./spatial_circle_sig(1);
+spatial_circle_real_sig_MPAC = spatial_circle_real_sig_MPAC./spatial_circle_real_sig_MPAC(1);
+% Correaltion = squeeze(Corr(:,1,2));
+
+%calculate the statistical error
+stat_MPAC = sqrt(sum(power(abs(spatial_circle_real_sig_MPAC)-abs(spatial_circle_sig),2))/length(spatial_circle_sig));
+
+%     output structure
+spatial_output.stat = stat_MPAC;
+spatial_output.spatial_circle_real = spatial_circle_real_sig_MPAC;
+spatial_output.spatial_circle = spatial_circle_sig;
+spatial_output.spatial_num = spatial_num;
+spatial_output.theory = spatial;
+end
+
+% generate PAS data by function:PAS_fun
+function PAS_output = generate_PAS_inline(phi_sample,scenario,cluster_index)
+switch scenario
+    case 'test'
+        AOA = -22.5*pi/180;AS = 35*pi/180;
+        pow = 0;
+        
+    case 'micro'
+        % % SCME urban micro-cell
+        AOA = [0.7,-13.2,146.1,-30.5,-11.4,-1.1] * pi/180;
+        AS = 35*pi/180;
+        pow = [-3,-4.3,-5.7,-7.3,-9,-11.4];
+        
+    case 'macro'
+        % %SCME urban macro-cell
+        AOA = [65.7,45.6,143.2,32.5,-91.1,-19.2]*pi/180;
+        AS = 35*pi/180;
+        pow = [-3,-5.2,-4.7,-8.2,-12.1,-15.5];
+        
+    otherwise
+        warning('wrong scenario.');
+        quit;
+end
+
+if strcmp(scenario, 'test')
+    cluster_index = 1;
+end
+
+% amp = 10.^(pow/10);
+% A = amp./max(amp);
+%     PAS_fun = @(x) (1/(2*AS))*sum( A.*exp(-abs(x-AOA)/AS) );
+PAS_fun = @(x) (1/(2*AS))* exp(-abs(x - AOA(cluster_index) )/AS);
+
+PAS_output.PAS = zeros(1,length(phi_sample));
+
+for i = 1:length(phi_sample)
+    PAS_output.PAS(i) = PAS_fun(phi_sample(i));
+end
+
+sumPAS = sum(PAS_output.PAS);
+PAS_output.PAS = PAS_output.PAS ./ sumPAS;
+PAS_output.pow = pow(cluster_index);
+end
+##### SOURCE END #####
+--></body></html>

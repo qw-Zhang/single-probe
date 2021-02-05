@@ -177,7 +177,7 @@ ber_ce_val3 = [1,ber_ce_val3,0];
 th_measure = power(1 - ber_ce_val3,20);
 th_measure_ce = pchip(-60:2:-47,th_measure,-60:1:-47);
 figure;hold on;
-p1 = plot((-60:1:-47)+5,th_measure_ce*100,'*','MarkerSize',10,'LineWidth',3);
+plot((-60:1:-47)+5,th_measure_ce*100,'*','MarkerSize',10,'LineWidth',3);
 plot(ber_ce_pos-0.8 + 5,100*power(1 - BER_theory_ce,200),'LineWidth',4,'Color','blue');
 
 %%
@@ -201,10 +201,10 @@ ber_val_noCE2 = ber_val_noCE_1123(1:3:end);
 % hold on;
 % semilogy(ber_pos,BER_theory);
 th_noCE2 = power(1 - flip(ber_val_noCE2),100);
-th_measure_noCE = pchip(-62:3:-51,th_noCE2,-62:2:-51);
+th_measure_noCE = pchip(-62:3:-51,th_noCE2,-62:1:-51);
 % figure; hold on;
 hold on;
-p2 = plot((-62:2:-51)+0.6,100*th_measure_noCE,'^','MarkerSize',10,'LineWidth',3);
+p2 = plot((-62:1:-51)+0.6,100*th_measure_noCE,'^','MarkerSize',10,'LineWidth',3);
 % plot( -62:1:-51,th_noCE);
 plot(ber_pos-0.45,100*power(1 - BER_theory,400),'LineWidth',4,'Color','red');
 axis([-62 -43 0 100]);

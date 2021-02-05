@@ -230,3 +230,10 @@ th_ce_line.XData;
 th_ce_data(1:2:14)
 hold on;plot(th_ce_data(1:2:14),'Marker','o')
 hold on;plot(th_ce_line.XData(1:2:14),th_ce_data(1:2:14),'Marker','o')
+
+%%
+% generate chirp signal
+t = 0:1/1e3:2;
+f0 = 0;
+u = 100;
+y = exp(1j*2*pi*(f0*t+1/2*(u*power(t,2))));
