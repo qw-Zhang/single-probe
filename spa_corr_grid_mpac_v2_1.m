@@ -149,6 +149,7 @@ rx_real_2 = repmat(1+1j,length(d),length(phi_sample),length(sig));
 %%
 isFaded = 1;
 [h_syn,h_para] = generate_H(phi_sample,real_PAS,scenario,isFaded);
+[fading_sig,h_t_tau] = generate_fading_sig_v2(h_syn,h_para,sig);
 size_h = size(h_syn.h_ori);
 T = size_h(4);
 sig_T = length(sig) * 1e-8;
@@ -185,9 +186,6 @@ for i = 1:length(new_d)
         rx_2(i,j,:) = P_az_amp((ang_P_2))*conv(h_sig_2(i,j),sig);
     end
     
-    % Corr(:,:,i) = abs(corrcoef(h_new_1(i,:),h_new_2(i,:)));
-    % spatial_circle_sig(i) = sum(r1(i,:).*conj(r2(i,:)))/sum(r1(1,:).*conj(r2(1,:)));
-    
     num = randi([1,length(d)],1);
     %randomly choose one point in signal sequence. "100" is chosen randomly
     spatial_circle_sig(i) = sum(rx_1(i,:,num).*conj(rx_2(i,:,num)));
@@ -213,8 +211,7 @@ for i = 1:length(new_d)
         h_sig_real_1(i,j) = alpha*exp(1j*(beta(j) + 2*pi*fc*(d_real_1(i,j)/c) )).*sqrt(real_PAS(j));
         h_sig_real_2(i,j) = alpha*exp(1j*(beta(j) + 2*pi*fc*(d_real_2(i,j)/c) )).*sqrt(real_PAS(j));
         
-        [fading_sig,h_t_tau] = generate_fading_sig(h_syn,h_para,j,sig);
-        h_t_tau_store(j,:,:) = h_t_tau;
+%         [fading_sig,h_t_tau] = generate_fading_sig(h_syn,h_para,j,sig);
         h1 = squeeze(sum(h_syn.h1,1));
         h2 = squeeze(sum(h_syn.h1,1));
         len_h = size(h1,2);
@@ -226,8 +223,8 @@ for i = 1:length(new_d)
         rx_real_2(i,j,:) = P_az_amp(ang_P_2)*(h_sig_real_2(i,j)*sig);
         
         for t_index = 1:T
-            rx_h_sig_1 = fading_sig(t_index,1:1000) .* exp(1j*k_CONST*(d_real_1(i,j)) );
-            rx_h_sig_2 = fading_sig(t_index,1:1000) .* exp(1j*k_CONST*(d_real_2(i,j)) );
+            rx_h_sig_1 = fading_sig(j,t_index,1:1000) .* exp(1j*k_CONST*(d_real_1(i,j)) );
+            rx_h_sig_2 = fading_sig(j,t_index,1:1000) .* exp(1j*k_CONST*(d_real_2(i,j)) );
             rx_h_sig_fft_1(i,j,t_index) = fft_process( rx_h_sig_1 );
             rx_h_sig_fft_2(i,j,t_index) = fft_process( rx_h_sig_2 );
             

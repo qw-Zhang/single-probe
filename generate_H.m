@@ -103,7 +103,7 @@ if faded
     for s = 1:2 % tx number
         ds = 0.5 * (s-1) * wavelength;
         for clu = 1:CLUSTER
-             h_temp = (randn(K,length(t)) + 1i*randn(K,length(t)));
+            h_temp = (randn(K,length(t)) + 1i*randn(K,length(t)));
             PAS_output = generate_PAS_inline(phi_sample,scenario,clu);
 %             phases = 360*rand(K,M);
             phases = -180 + 360*rand(K,M);

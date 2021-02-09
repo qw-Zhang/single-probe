@@ -5,15 +5,15 @@
 fc = 2.45e9;
 c = 3e8;
 lambda = c/fc;
-d = linspace(0,2*lambda,41);
-d_sum = linspace(0,2*lambda,41);
+d = linspace(0,2*lambda,21);
+d_sum = linspace(0,2*lambda,21);
 % probe_pos = linspace(8,36,15);  %8-36 locations of probe
 probe_pos = [8,16,36,72];
 error_MPAC = zeros(1,length(probe_pos));
 error_SPAC = zeros(1,length(probe_pos));
 phi_a = [0 30 60 120 150]*pi/180;
 for j = 1:1
-    for i = 3:3
+    for i = 1:1
         %uniform choose the location of probe
         phi_sample = linspace(-pi,pi,probe_pos(i));
 %         phi_sample = linspace(-pi,pi,3); % this sample just use in spa_corr_grid_mpac_v3_1
