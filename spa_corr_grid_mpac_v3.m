@@ -16,7 +16,6 @@ function spatial_output = spa_corr_grid_mpac_v3(phi_sample,phi_a,d,error_para,an
     % rate = length(ideal_phi)/length(real_phi);
     
     %scenario parameters
-%     phi_a = 0*pi/180;
     % choose one scenario from "test" "micro" "macro"
     scenario = 'micro';
     ideal_PAS = generate_PAS1(ideal_phi,scenario);
@@ -32,9 +31,6 @@ function spatial_output = spa_corr_grid_mpac_v3(phi_sample,phi_a,d,error_para,an
     %Rx one antenna pattern
     %generate the pattern gain of the antenna.
     %parameter:antenna,frequency,al,ez.
-    %G(dBi)=10lgGi G(dBd)=10lgG dBi=dBd+2.15
-    % [D,al,ez] = pattern(ant,fc,0:1:360,-90:1:90);
-    
     if ant_able
         P_az = generate_pattern(fc);
     else

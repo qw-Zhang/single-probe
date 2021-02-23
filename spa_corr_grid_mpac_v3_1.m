@@ -14,7 +14,6 @@ ideal_phi = linspace(-pi,pi,3600);
 real_PAS = zeros(1,length(phi_sample));
 
 rate = floor(length(ideal_phi)/length(phi_sample));
-% rate = length(ideal_phi)/length(real_phi);
 
 %scenario parameters
 %     phi_a = 0*pi/180;
@@ -35,9 +34,6 @@ scenario = 'single';
 %Rx one antenna pattern
 %generate the pattern gain of the antenna.
 %parameter:antenna,frequency,al,ez.
-%G(dBi)=10lgGi G(dBd)=10lgG dBi=dBd+2.15
-% [D,al,ez] = pattern(ant,fc,0:1:360,-90:1:90);
-
 if ant_able
     P_az = generate_pattern(fc);
 else
