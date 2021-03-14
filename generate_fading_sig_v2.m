@@ -7,7 +7,6 @@
 function [fading_sig,h_t_tau] = generate_fading_sig_v2(h,h_para,sig)
 h_ori = h.h_ori;
 h1 = h.h1;
-
 delay = h_para.delay;
 delta_T = h_para.delta_T;
 size_h = size(h_ori);
@@ -28,9 +27,8 @@ for k_index = 1:K
             vec_tau(k_index,t_index,delay(clu_index)) = h1(clu_index,k_index,t_index);
         end
     end
-end
-
-for k_index = 1:K
+    
+    % delay domain convolve with sig
     for t_index = 1:T
         sig_temp = conv(squeeze(vec_tau(k_index,t_index, :)),sig);
         fading_sig(k_index,t_index,:) = sig_temp;

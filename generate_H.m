@@ -2,7 +2,7 @@
 %%
 % function PAS_output = generate_PAS(ideal_phi,scenario,cluster_index)
 % generating PAS for every cluster.
-function [h,output_para] = generate_H(phi_sample,real_PAS,scenario,faded)
+function [h,output_para] = generate_H(phi_sample,scenario)
 fc = 2.45e9;
 speed_of_light=2.99792458e8;
 wavelength=speed_of_light/fc;
@@ -40,8 +40,8 @@ switch scenario
         aoas = aoas';
         
         pow = [-3,-5.7,-4.3,-7.3,-9,-11.4];
-        delay = [1,22,30,67,82,94];
-%         delay = [1,80,180,300,400,800];
+        delay = [1,30,22,67,82,94];
+        %         delay = [1,80,180,300,400,800];
         
     case 'macro'
         aod_2deg     = [0.0894 0.2826 0.4984 0.7431 1.0257 1.3594 1.7688 2.2961 3.0389 4.3101];     % [1, Table 5.2]
@@ -88,68 +88,54 @@ switch scenario
         delay = [1];
 end
 
-if faded
-    
-    P = zeros(CLUSTER,K);
-    % according to model and resolution of tau(10ns)
-    
-    subpath = zeros(M,T);
-    h_test = zeros(2,CLUSTER,K,T);
-    
-    
-    phi_sample_deg = phi_sample .* 180 / pi;
-    
-    
-    for s = 1:2 % tx number
-        ds = 0.5 * (s-1) * wavelength;
-        for clu = 1:CLUSTER
-            h_temp = (randn(K,length(t)) + 1i*randn(K,length(t)));
-            PAS_output = generate_PAS_inline(phi_sample,scenario,clu);
-%             phases = 360*rand(K,M);
-            phases = -180 + 360*rand(K,M);
-            for k = 1:K
-                for m = 1:M
-                    subpath(m,:) = 1/20 * exp(1j * (k_CONST * v * cos((aoas(clu,m) - MsDirection)*pi/180) .* t + (phases(k,m)*pi/180)) );
-                end
-                amp_mag = sqrt(10.^(PAS_output.pow/20));
-                P(clu,k) = PAS_output.PAS(k) * amp_mag;
-%                 h_test(s,clu,k,:) = P(clu,k) .* sum(subpath,1);
-                h_test(s,clu,k,:) = P(clu,k) .* h_temp(k,:);
-            end
-        end
-    end
+P = zeros(CLUSTER,K);
+% according to model and resolution of tau(10ns)
 
-else
-% unfaded
-    t = zeros(1,T);
-    P = zeros(CLUSTER,K);
-    % according to model and resolution of tau(10ns)
-    
-    subpath = zeros(M,T);
-    h_test = zeros(2,CLUSTER,K,T);
-    
-    phi_sample_deg = phi_sample .* 180 / pi;
-    
-    
-    for s = 1:2 % tx number
-        ds = 0.5 * (s-1) * wavelength;
-        for clu = 1:CLUSTER
-           
-            PAS_output = generate_PAS_inline(phi_sample,scenario,clu);
-            phases = 360*rand(K,M);
-            for k = 1:K
-                for m = 1:M
-                    subpath(m,:) = 1/20 * exp(1j * (k_CONST * v * cos((aoas(clu,m) - MsDirection)*pi/180) .* t + phases(k,m)));
-%                     subpath(m,:) = 1/20 * (randn(1,length(t)) + 1i*randn(1,length(t)));
-                end
-                amp_mag = sqrt(10.^(PAS_output.pow/20));
-                P(clu,k) = PAS_output.PAS(k) * amp_mag;
-                h_test(s,clu,k,:) = P(clu,k) .* sum(subpath,1);
+subpath = zeros(M,T);
+h_test = zeros(2,CLUSTER,K,T);
+
+
+phi_sample_deg = phi_sample .* 180 / pi;
+
+
+for s = 1:2 % tx number
+    ds = 0.5 * (s-1) * wavelength;
+    for clu = 1:CLUSTER
+        %         h_temp = (randn(K,length(t)) + 1i*randn(K,length(t)));
+        PAS_output_clu = generate_PAS_inline(phi_sample,scenario,clu);
+        %             phases = 360*rand(K,M);
+        phases = -180 + 360*rand(K,M);
+        for k = 1:K
+            for m = 1:M
+                subpath(m,:) = 1/20 * exp(1j * (k_CONST * v * cos((aoas(clu,m) - MsDirection)*pi/180) .* t + (phases(k,m)*pi/180)) );
             end
+            amp_mag = db2mag(PAS_output_clu.pow);
+            pow_mag_norm = power( (amp_mag ./ db2mag(PAS_output_clu.pow_init)),2);
+            P(clu,k) = PAS_output_clu.PAS(k) * pow_mag_norm;
+            %             P_root(clu,k) = PAS_output_clu.PAS(k) * nthroot(pow_mag_norm,4);
+            h_test(s,clu,k,:) = sqrt(P(clu,k)) .* sum(subpath,1);
+            % h_test(s,clu,k,:) = P(clu,k) .* h_temp(k,:);
         end
     end
-    
 end
+
+% return sum of all clusters
+PAS_output_temp = repmat(PAS_output_clu, CLUSTER, 1 );
+ideal_length = length(PAS_output_clu.ideal_PAS);
+P_ideal_sum_temp = zeros(CLUSTER,ideal_length);
+P_real_sum_temp = zeros(CLUSTER, length(PAS_output_clu.PAS));
+for clu = 1:CLUSTER
+    PAS_output_temp(clu) = generate_PAS_inline(phi_sample,scenario,clu);
+    %                 amp_mag = sqrt(10.^(PAS_output_clu.pow/10));
+    amp_mag = db2mag(PAS_output_temp(clu).pow);
+    pow_mag_norm = power( (amp_mag ./ db2mag(PAS_output_temp(clu).pow_init)),2);
+    P_ideal_sum_temp(clu,:) = PAS_output_temp(clu).ideal_PAS * pow_mag_norm;
+%     P_real_sum_temp(clu,:) = PAS_output_clu.PAS * pow_mag_norm;
+	P_real_sum_temp(clu,:) = PAS_output_temp(clu).PAS .* pow_mag_norm;
+end
+P_ideal_sum = sum(P_ideal_sum_temp,1);
+P_real_sum = sum(P_real_sum_temp,1);
+
 h.h_ori = h_test;
 % h.h1 = squeeze(sum(h_test,1));
 % h.h2 = squeeze(sum(h_test,1));
@@ -158,7 +144,8 @@ h.h_ori = h_test;
 h.h1 = reshape(h_test(1,:,:,:),CLUSTER,K,T);
 
 % h.h1 = reshape(sum(h_test,1),CLUSTER,K,T);
-
+output_para.real_PAS_sum = P_real_sum;
+output_para.ideal_PAS_sum = P_ideal_sum;
 output_para.pow = P;
 output_para.h_aoas = aoas;
 output_para.h_aods = aods;
@@ -176,10 +163,11 @@ switch scenario
         
     case 'micro'
         % % SCME urban micro-cell
-%         AOA = [0.7,-13.2,146.1,-30.5,-11.4,-1.1] * pi/180;
-        AOA = [0.7,-13.2,146.1,-30.5,-21.4,30.1] * pi/180;
+        AOA = [0.7,-13.2,146.1,-30.5,-11.4,-1.1] * pi/180;
+%         AOA = [0.7,-13.2,146.1,-30.5,-21.4,30.1] * pi/180;
         AS = 35*pi/180;
-        pow = [-3,-4.3,-5.7,-7.3,-9,-11.4];
+        pow_table = [ [-3 -5.2 -7]; [-4.3 -6.5 -8.3]; [-5.7 -7.9 -9.7]; [-7.3 -9.5 -11.3]; [-9 -11.2 -13]; [-11.4 -13.6 -15.4] ];
+        pow = mean(pow_table,2);
         
     case 'macro'
         % %SCME urban macro-cell
@@ -217,7 +205,7 @@ end
 
 move_step = round(AOA(cluster_index) * 180 / pi * 10);
 ideal_PAS = circshift(ideal_PAS_temp,move_step);
-
+ideal_PAS = ideal_PAS ./ max(ideal_PAS);
 rate = floor(length(ideal_phi)/length(phi_sample));
 % real probe scenario
 % for i = 1:length(phi_sample)
@@ -241,6 +229,9 @@ real_PAS = real_PAS_temp;
 %     PAS_output.PAS(i) = PAS_fun(phi_sample(i));
 % end
 
+% just for test
+PAS_output.ideal_PAS = ideal_PAS;
+PAS_output.pow_init = pow(1);
 PAS_output.PAS = real_PAS;
 PAS_output.pow = pow(cluster_index);
 end
