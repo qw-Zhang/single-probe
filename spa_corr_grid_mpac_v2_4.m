@@ -2,7 +2,8 @@
 % v2 -> add phase estimate
 % v2.1 add simulation h(channel parameter), and simulation the spatial
 % correlation without signal, just using channel itself.
-function spatial_output = spa_corr_grid_mpac_v2_1(phi_sample,phi_a,d,error_para,ant_able)
+% v2.4 delete fading H and sig, just save (ori) synthesized PAS
+function spatial_output = spa_corr_grid_mpac_v2_4(phi_sample,phi_a,d,error_para,ant_able)
 %% some basic parameters
 fc = 2.45e9;
 c = 3e8;
@@ -29,7 +30,8 @@ rate = floor(length(ideal_phi)/length(phi_sample));
 scenario = 'micro';
 
 ideal_PAS = generate_PAS1(ideal_phi,phi_sample,scenario);
-
+PP = load('ideal_PP_micro.mat');
+ideal_PAS = PP.ideal_PP_micro;
 % real probe scenario
 for i = 1:length(phi_sample)
     real_PAS(i) = sum(ideal_PAS(rate*(i-1)+1:rate*i))/rate;
@@ -37,7 +39,10 @@ end
 phi_sample = downsample(ideal_phi,rate);
 real_sum_PAS = sum(real_PAS);
 real_PAS = real_PAS/real_sum_PAS;
-
+% macro
+% real_PAS = [0.0701    0.0277    0.0414    0.0431    0.1138    0.3280    0.2040    0.1720];
+% micro
+real_PAS = [0.2150    0.1633    0.2401    0.4448    0.6384    0.3471    0.2322    0.2993];
 %% init matrix
 h = repmat(1+1j, length(d), 2, length(ideal_phi));
 [d_1, d_2, delta_d, h_sig_1, h_sig_2] = deal(zeros(length(d), length(ideal_phi)));
@@ -47,7 +52,7 @@ rx_1 = repmat(1+1j,length(d),length(ideal_phi),length(sig));
 rx_2 = repmat(1+1j,length(d),length(ideal_phi),length(sig));
 rx_real_1 = repmat(1+1j,length(d),length(phi_sample),length(sig));
 rx_real_2 = repmat(1+1j,length(d),length(phi_sample),length(sig));
-[spa_sig, spa_real_sig_MPAC,spa_num,spatial,corr_h_no_delay_m2,...
+[spa_sig, spa_real_sig_MPAC, spa_real_sig_MPAC_m2,spa_num,spatial,corr_h_no_delay_m2,...
     corr_fad_sig_m1,corr_fad_sig_m2,corr_para_bakup] = deal(zeros(1,length(d)));
 
 %% Rx one antenna pattern
@@ -62,16 +67,6 @@ end
 P_az_amp = 10.^(P_az./20);
 
 %% generate H fading matrix and fading signal
-[h_syn,h_para] = generate_H(phi_sample,scenario);
-[fading_sig,h_t_tau] = generate_fading_sig_v2(h_syn,h_para,sig);
-size_h = size(h_syn.h_ori);
-T = size_h(4);
-
-% init matrix related with h matrix
-[sig_err_fft_1,sig_err_fft_2,h_probe_1,h_probe_2,rx_sig_fft_1,rx_sig_fft_2,rx_h_fft_1,rx_h_fft_2] = ...
-    deal(zeros(length(d),length(phi_sample),T));
-[sig_err_sum_1,sig_err_sum_2] = deal(zeros(length(d),T));
-
 
 %% calculate spatial correlation value(s)
 % center coordinate of two ants
@@ -80,6 +75,7 @@ x0 = 0;y0 = 0;
 %simulate radius of circle
 r = 1;
 beta = -pi + (pi--pi).*rand(1,length(ideal_phi)); %random select phase of signal
+beta = pi / 4 * ones(1,length(ideal_phi));
 alpha = 1;
 for i = 1:length(new_d)
     %simulate spatial correlation using two antennas with circle
@@ -106,7 +102,7 @@ for i = 1:length(new_d)
     
     %simulate spatial correlation using two antenna with circle(MPAC),
     %real phi and PAS
-    h1 = squeeze(sum(h_syn.h1,1));
+%     h1 = squeeze(sum(h_syn.h1,1));
     for j = 1:length(phi_sample)
         phi_real = phi_sample(j) + pi/2;
         %%postioner error
@@ -122,107 +118,18 @@ for i = 1:length(new_d)
         h_sig_real_1(i,j) = alpha*exp(1j*(beta(j) + 2*pi*fc*(d_real_1(i,j)/c) )).*sqrt(real_PAS(j));
         h_sig_real_2(i,j) = alpha*exp(1j*(beta(j) + 2*pi*fc*(d_real_2(i,j)/c) )).*sqrt(real_PAS(j));
 
-        h_probe_1(i,j,:) = h1(j,:) .* exp(1j*k_CONST*dot(top,pos_ant_1) );
-        h_probe_2(i,j,:) = h1(j,:) .* exp(1j*k_CONST*dot(top,pos_ant_2) );
+%         h_probe_1(i,j,:) = h1(j,:) .* exp(1j*k_CONST*dot(top,pos_ant_1) );
+%         h_probe_2(i,j,:) = h1(j,:) .* exp(1j*k_CONST*dot(top,pos_ant_2) );
         
         [ang_P_1,ang_P_2] = generate_ang_of_pattern_v2(top,pos_ant_1,pos_ant_2);
         rx_real_1(i,j,:) = P_az_amp(ang_P_1)*(h_sig_real_1(i,j)*sig);
         rx_real_2(i,j,:) = P_az_amp(ang_P_2)*(h_sig_real_2(i,j)*sig);
         
-        for t_index = 1:T
-            rx_sig_1 = fading_sig(j,t_index,1:1000).*exp(1j*k_CONST*dot(top,pos_ant_1));
-            rx_sig_2 = fading_sig(j,t_index,1:1000).*exp(1j*k_CONST*dot(top,pos_ant_2));
-            rx_sig_fft_1(i,j,t_index) = fft_process( rx_sig_1 );
-            rx_sig_fft_2(i,j,t_index) = fft_process( rx_sig_2 );
-            %                 tx = awgn(sig,10);
-            %                 tx_z = awgn(sig_z,10);
-            
-            rx_h_1 = h_t_tau(j,t_index,1:1000).*exp(1j*k_CONST*dot(top,pos_ant_1));
-            rx_h_2 = h_t_tau(j,t_index,1:1000).*exp(1j*k_CONST*dot(top,pos_ant_2));
-            rx_h_fft_1(i,j,t_index) = fft_process( rx_h_1 );
-            rx_h_fft_2(i,j,t_index) = fft_process( rx_h_2 );
-            
-            
-            if error_para(2) ~= 0
-                % connect a sin (single tone)
-                lf = 50;
-                t_sin = 0:0.001:0.05;
-                temp_sin = exp(1i*pi*lf*t_sin);
-                % this version suppose that the delay estimation is
-                % precise.
-                rx_sig_err_temp_1 = [temp_sin,squeeze(fading_sig(j,t_index,1:1000))'];
-                rx_sig_err_temp_1 = rx_sig_err_temp_1 .* exp(1j*k_CONST*dot(top,pos_ant_1));
-                rx_sig_err_temp_2 = [temp_sin,squeeze(fading_sig(j,t_index,1:1000))'];
-                rx_sig_err_temp_2 = rx_sig_err_temp_2 .* exp(1j*k_CONST*dot(top,pos_ant_2));
-                
-                sample_t = 400;
-                
-                [ang_est,error] = deal(zeros(1,sample_t));
-                
-                for k = 1:sample_t
-                    % error of time alignment on probe
-                    error(k) = error_para(1) + error_para(2)*randn(1,1);
-                    rx_sig_err_2_sample = rx_sig_err_temp_2 .* exp(1i*2*pi*fc*error(k));
-                    % angle estimate just use the single tone signal
-                    fft_temp = fft(rx_sig_err_2_sample(1:length(temp_sin)));
-                    [v_max, pos_max] = max(abs(fft_temp));
-                    ang_est(k) = angle(fft_temp(pos_max));
-                end
-                
-                [h_y,h_x] = hist(ang_est);   %choose a most probably piont by histogram
-                [vh_y,ph_y] = max(h_y);
-                %decrease origin phase and using new phase
-                % rx_real_2(i,j,:) = rx_real_sample_2*exp(1i*-ang_est(k))*exp(1i*h_x(ph_y));
-                phase_est = h_x(ph_y);
-                % phase_est = mean(ang_est);
-                len_rx_sig_err_temp_1 = length(rx_sig_err_temp_1);
-                rx_sig_err_1 = rx_sig_err_temp_1(length(temp_sin)+1:len_rx_sig_err_temp_1);
-                
-                len_rx_sig_err_temp_2 = length(rx_sig_err_temp_2);
-                rx_sig_est_2 = rx_sig_err_2_sample(length(temp_sin)+1:len_rx_sig_err_temp_2)...
-                               *exp(1i*-ang_est(k))*exp(1i*phase_est);
-                
-                sig_err_fft_1(i,j,t_index) = fft_process( rx_sig_err_1 );
-                sig_err_fft_2(i,j,t_index) = fft_process( rx_sig_est_2 );
-            end
-            
-        end
-        
-        sig_err_m1(i,j) = mean(sig_err_fft_1(i,j,:) .* conj(sig_err_fft_2(i,j,:)));
-        
-        fad_sig_m1_temp(j) = mean(rx_sig_fft_1(i,j,:) .* conj(rx_sig_fft_2(i,j,:)));
-        
-        corr_h_m1_temp = corrcoef(h_probe_1(i,j,:),h_probe_2(i,j,:));
-        corr_h_m1(i,j) = corr_h_m1_temp(1,2);
     end
     
-    corr_fad_sig_m1(i) = sum(fad_sig_m1_temp);
-    
-    corr_fad_sig_err_m1(i) = sum(sig_err_m1(i,:));
-    
-    sig_err_sum_1(i,:) = squeeze(sum(sig_err_fft_1(i,:,:),2));
-    sig_err_sum_2(i,:) = squeeze(sum(sig_err_fft_2(i,:,:),2));
-    corr_fad_sig_err_m2(i) = mean(sig_err_sum_1(i,:) .* conj(sig_err_sum_2(i,:)));
-    
-    sig_sum_1 = squeeze(sum(rx_sig_fft_1,2));
-    sig_sum_2 = squeeze(sum(rx_sig_fft_2,2));
-    fad_sig_m2_temp = corrcoef(sig_sum_1(i,:),sig_sum_2(i,:));
-    corr_fad_sig_m2(i) = fad_sig_m2_temp(1,2);
-    
-    h_sum_1 = squeeze(sum(rx_h_fft_1,2));
-    h_sum_2 = squeeze(sum(rx_h_fft_2,2));
-    fad_h_m2_temp = corrcoef(h_sum_1(i,:),h_sum_2(i,:));
-    corr_fad_h_m2(i) = fad_h_m2_temp(1,2);
-    
-    corr_para_bakup(i) = sum(sig_sum_1(:,i) .* conj(sig_sum_2(:,i)));
-    
-    % no time delay in h
-    h_1(i,:) = squeeze(sum(h_probe_1(i,:,:),2))';
-    h_2(i,:) = squeeze(sum(h_probe_2(i,:,:),2))';
-    corr_h_no_delay_m2(i) = mean(h_1(i,:) .* conj(h_2(i,:)));
-    
     %randomly choose one point in signal sequence. "100" is chosen randomly
-    num = randi([1,length(sig)],1);
+%     num = randi([1,length(sig)],1);
+    num = 10;
     spa_real_sig_MPAC(i) = sum(rx_real_1(i,:,num).*conj(rx_real_2(i,:,num)));
     rx_real_sum_1(i) = sum(rx_real_1(i,:,num),2);
     rx_real_sum_2(i) = sum(rx_real_2(i,:,num),2);
@@ -253,10 +160,7 @@ corr_fad_sig_m1 = corr_fad_sig_m1 ./ corr_fad_sig_m1(1);
 spatial = spatial./spatial(1);
 spa_sig = spa_sig./spa_sig(1);
 spa_real_sig_MPAC = spa_real_sig_MPAC./spa_real_sig_MPAC(1);
-corr_fad_sig_err_m1 = corr_fad_sig_err_m1 ./ corr_fad_sig_err_m1(1);
-corr_fad_sig_err_m2 = corr_fad_sig_err_m2 ./ corr_fad_sig_err_m2(1);
-corr_fad_h_m2 = corr_fad_h_m2 ./ corr_fad_h_m2(1);
-
+spa_real_sig_MPAC_m2 = spa_real_sig_MPAC_m2 ./ spa_real_sig_MPAC_m2(1);
 %% plot figure
 figure;
 hold on;
@@ -264,12 +168,7 @@ plot(d/lambda,abs(spatial),'black');
 plot(d/lambda,abs(spa_num),'green');
 %         plot(d_sum/lambda,abs(mpac_out.spatial_num_v2),'yellow');
 plot(d/lambda,abs(spa_real_sig_MPAC),'red');
-% plot(d/lambda,abs(spatial_output.h_sum),'magenta');
-plot(d/lambda,abs(corr_fad_sig_m2),'black');
-plot(d/lambda,abs(corr_fad_h_m2),'magenta');
-plot(d/lambda,abs(corr_fad_sig_err_m1),'blue');
-plot(d/lambda,abs(corr_fad_sig_err_m2),'cyan');
-plot(d/lambda,abs(corr_h_no_delay_m2));
+plot(d/lambda,abs(spa_real_sig_MPAC_m2),'blue');
 axis([0 2 0 1]);
 %     plot(d/lambda,abs(sim_real_sig_SPAC),'magenta');
 %     plot(d/lambda,abs(sim_sig),'blue');

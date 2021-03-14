@@ -2,7 +2,8 @@
 % v2 -> add phase estimate
 % v2.1 add simulation h(channel parameter), and simulation the spatial
 % correlation without signal, just using channel itself.
-function spatial_output = spa_corr_grid_mpac_v2_1(phi_sample,phi_a,d,error_para,ant_able)
+% v2.3 zadoffChuSeq used
+function spatial_output = spa_corr_grid_mpac_v2_3(phi_sample,phi_a,d,error_para,ant_able)
 %% some basic parameters
 fc = 2.45e9;
 c = 3e8;
@@ -15,8 +16,23 @@ new_d = linspace(0,d(length(d))/2,length(d));
 
 % Fading info are involved in H matrix.
 % sig is a standard single tone signal.
-t = linspace(0,1e-8,101);
-sig = exp(1i*2*pi*fc*t);
+% t = linspace(0,1e-8,101);
+% sig = exp(1i*2*pi*fc*t);
+%% generate zadoffchu seq as signal
+sig = zadoffChuSeq(25,101);
+
+% figure;
+% plot(abs(seq));
+
+% seq_shift = 0.78 * seq .* exp(1i*pi/5);
+% for i = 1:200
+% seq_shift_awgn = awgn(seq_shift,10);
+% [val(i,:),pos] = xcorr(seq_shift_awgn,seq);
+% 
+% ang(i) = angle(val(i,101));
+% 
+% end
+
 
 %% PAS for theory and spatial_num value
 ideal_phi = linspace(-pi,pi,3600);
@@ -64,14 +80,32 @@ P_az_amp = 10.^(P_az./20);
 %% generate H fading matrix and fading signal
 [h_syn,h_para] = generate_H(phi_sample,scenario);
 [fading_sig,h_t_tau] = generate_fading_sig_v2(h_syn,h_para,sig);
+
 size_h = size(h_syn.h_ori);
 T = size_h(4);
+num_probe = size_h(3);
+% connect chirp and start point
+t = 0:1/1e3:1;
+sig_chirp_ori = 0.5 .* chirp(t,0,1,100,'complex');
+% chirp length = 1001; zeros length = 100;
+sig_chirp = [zeros(1,100), sig_chirp_ori, zeros(1,100)];
 
 % init matrix related with h matrix
-[sig_err_fft_1,sig_err_fft_2,h_probe_1,h_probe_2,rx_sig_fft_1,rx_sig_fft_2,rx_h_fft_1,rx_h_fft_2] = ...
+[sig_err_fft_1,sig_err_fft_2,h_probe_1,h_probe_2,rx_h_sig_fft_1,rx_h_sig_fft_2] = ...
     deal(zeros(length(d),length(phi_sample),T));
 [sig_err_sum_1,sig_err_sum_2] = deal(zeros(length(d),T));
+% 1000 is temporary parameter.
+fading_sig_part = zeros(num_probe,T,1000);
+fading_sig_probe_temp = zeros(num_probe,T * 1000);
+fading_sig_probe = zeros(num_probe, T * 1000 + length(sig_chirp));
 
+for j = 1:size_h(3)
+    for t_index = 1:T
+        fading_sig_part(j,t_index,:) = fading_sig(j,t_index,1:1000);
+    end
+    fading_sig_probe_temp(j,:) = reshape(squeeze(fading_sig_part(j,:,:)).',1,T*1000);
+    fading_sig_probe(j,:) = [sig_chirp, fading_sig_probe_temp(j,:)];
+end
 
 %% calculate spatial correlation value(s)
 % center coordinate of two ants
@@ -119,6 +153,9 @@ for i = 1:length(new_d)
         d_real_2(i,j) = sqrt((pos_ant_2(1) - top(1))^2 + (pos_ant_2(2) - top(2))^2);
         delta_real_d(i,j) = d_real_2(i,j) - d_real_1(i,j);
         
+        % free space pathloss
+        alpha_1 = pl_free(d_real_1(i,j),lambda);
+        alpha_2 = pl_free(d_real_2(i,j),lambda);
         h_sig_real_1(i,j) = alpha*exp(1j*(beta(j) + 2*pi*fc*(d_real_1(i,j)/c) )).*sqrt(real_PAS(j));
         h_sig_real_2(i,j) = alpha*exp(1j*(beta(j) + 2*pi*fc*(d_real_2(i,j)/c) )).*sqrt(real_PAS(j));
 
@@ -129,19 +166,24 @@ for i = 1:length(new_d)
         rx_real_1(i,j,:) = P_az_amp(ang_P_1)*(h_sig_real_1(i,j)*sig);
         rx_real_2(i,j,:) = P_az_amp(ang_P_2)*(h_sig_real_2(i,j)*sig);
         
+        rx_fad_sig_probe_1(j,:) = fading_sig_probe(j,:) .* exp(1j*k_CONST*dot(top,pos_ant_1));
+        rx_fad_sig_probe_2(j,:) = fading_sig_probe(j,:) .* exp(1j*k_CONST*dot(top,pos_ant_2));
+        
+        % no process of chirp
+        % that means bias one or two samples would influence the res of
+        % xcorr
+        xcorr_rx_1(i,j,:) = xcorr_process(rx_fad_sig_probe_1(j,:), sig, sig_chirp_ori, T);
+        xcorr_rx_2(i,j,:) = xcorr_process(rx_fad_sig_probe_2(j,:), sig, sig_chirp_ori, T);
+        
+        xcorr_m1_temp(i,j) = mean(xcorr_rx_1(i,j,:) .* conj(xcorr_rx_2(i,j,: )));
+        
         for t_index = 1:T
-            rx_sig_1 = fading_sig(j,t_index,1:1000).*exp(1j*k_CONST*dot(top,pos_ant_1));
-            rx_sig_2 = fading_sig(j,t_index,1:1000).*exp(1j*k_CONST*dot(top,pos_ant_2));
-            rx_sig_fft_1(i,j,t_index) = fft_process( rx_sig_1 );
-            rx_sig_fft_2(i,j,t_index) = fft_process( rx_sig_2 );
+            rx_h_sig_1 = fading_sig(j,t_index,1:1000).*exp(1j*k_CONST*dot(top,pos_ant_1));
+            rx_h_sig_2 = fading_sig(j,t_index,1:1000).*exp(1j*k_CONST*dot(top,pos_ant_2));
+            rx_h_sig_fft_1(i,j,t_index) = fft_process( rx_h_sig_1 );
+            rx_h_sig_fft_2(i,j,t_index) = fft_process( rx_h_sig_2 );
             %                 tx = awgn(sig,10);
             %                 tx_z = awgn(sig_z,10);
-            
-            rx_h_1 = h_t_tau(j,t_index,1:1000).*exp(1j*k_CONST*dot(top,pos_ant_1));
-            rx_h_2 = h_t_tau(j,t_index,1:1000).*exp(1j*k_CONST*dot(top,pos_ant_2));
-            rx_h_fft_1(i,j,t_index) = fft_process( rx_h_1 );
-            rx_h_fft_2(i,j,t_index) = fft_process( rx_h_2 );
-            
             
             if error_para(2) ~= 0
                 % connect a sin (single tone)
@@ -190,7 +232,7 @@ for i = 1:length(new_d)
         
         sig_err_m1(i,j) = mean(sig_err_fft_1(i,j,:) .* conj(sig_err_fft_2(i,j,:)));
         
-        fad_sig_m1_temp(j) = mean(rx_sig_fft_1(i,j,:) .* conj(rx_sig_fft_2(i,j,:)));
+        fad_sig_m1_temp(j) = mean(rx_h_sig_fft_1(i,j,:) .* conj(rx_h_sig_fft_2(i,j,:)));
         
         corr_h_m1_temp = corrcoef(h_probe_1(i,j,:),h_probe_2(i,j,:));
         corr_h_m1(i,j) = corr_h_m1_temp(1,2);
@@ -204,15 +246,16 @@ for i = 1:length(new_d)
     sig_err_sum_2(i,:) = squeeze(sum(sig_err_fft_2(i,:,:),2));
     corr_fad_sig_err_m2(i) = mean(sig_err_sum_1(i,:) .* conj(sig_err_sum_2(i,:)));
     
-    sig_sum_1 = squeeze(sum(rx_sig_fft_1,2));
-    sig_sum_2 = squeeze(sum(rx_sig_fft_2,2));
+    sig_sum_1 = squeeze(sum(rx_h_sig_fft_1,2));
+    sig_sum_2 = squeeze(sum(rx_h_sig_fft_2,2));
     fad_sig_m2_temp = corrcoef(sig_sum_1(i,:),sig_sum_2(i,:));
     corr_fad_sig_m2(i) = fad_sig_m2_temp(1,2);
     
-    h_sum_1 = squeeze(sum(rx_h_fft_1,2));
-    h_sum_2 = squeeze(sum(rx_h_fft_2,2));
-    fad_h_m2_temp = corrcoef(h_sum_1(i,:),h_sum_2(i,:));
-    corr_fad_h_m2(i) = fad_h_m2_temp(1,2);
+    xcorr_m1(i) = sum(xcorr_m1_temp(i,:));
+    
+    xcorr_rx_sum_1 = squeeze(sum(xcorr_rx_1(i,:,:),2));
+    xcorr_rx_sum_2 = squeeze(sum(xcorr_rx_2(i,:,:),2));
+    xcorr_m2(i) = mean(xcorr_rx_sum_1 .* conj(xcorr_rx_sum_2));
     
     corr_para_bakup(i) = sum(sig_sum_1(:,i) .* conj(sig_sum_2(:,i)));
     
@@ -224,9 +267,6 @@ for i = 1:length(new_d)
     %randomly choose one point in signal sequence. "100" is chosen randomly
     num = randi([1,length(sig)],1);
     spa_real_sig_MPAC(i) = sum(rx_real_1(i,:,num).*conj(rx_real_2(i,:,num)));
-    rx_real_sum_1(i) = sum(rx_real_1(i,:,num),2);
-    rx_real_sum_2(i) = sum(rx_real_2(i,:,num),2);
-    spa_real_sig_MPAC_m2(i) = sum(rx_real_sum_1(i).*conj(rx_real_sum_2(i)));
     
     %using numberical method calculate the spatial correlation
     for j = 1:length(ideal_phi)
@@ -255,7 +295,8 @@ spa_sig = spa_sig./spa_sig(1);
 spa_real_sig_MPAC = spa_real_sig_MPAC./spa_real_sig_MPAC(1);
 corr_fad_sig_err_m1 = corr_fad_sig_err_m1 ./ corr_fad_sig_err_m1(1);
 corr_fad_sig_err_m2 = corr_fad_sig_err_m2 ./ corr_fad_sig_err_m2(1);
-corr_fad_h_m2 = corr_fad_h_m2 ./ corr_fad_h_m2(1);
+xcorr_m1 = xcorr_m1 ./ xcorr_m1(1);
+xcorr_m2 = xcorr_m2 ./ xcorr_m2(1);
 
 %% plot figure
 figure;
@@ -266,10 +307,11 @@ plot(d/lambda,abs(spa_num),'green');
 plot(d/lambda,abs(spa_real_sig_MPAC),'red');
 % plot(d/lambda,abs(spatial_output.h_sum),'magenta');
 plot(d/lambda,abs(corr_fad_sig_m2),'black');
-plot(d/lambda,abs(corr_fad_h_m2),'magenta');
+plot(d/lambda,abs(corr_fad_sig_m1),'magenta');
 plot(d/lambda,abs(corr_fad_sig_err_m1),'blue');
 plot(d/lambda,abs(corr_fad_sig_err_m2),'cyan');
-plot(d/lambda,abs(corr_h_no_delay_m2));
+plot(d/lambda,abs(xcorr_m1));
+plot(d/lambda,abs(xcorr_m2));
 axis([0 2 0 1]);
 %     plot(d/lambda,abs(sim_real_sig_SPAC),'magenta');
 %     plot(d/lambda,abs(sim_sig),'blue');
